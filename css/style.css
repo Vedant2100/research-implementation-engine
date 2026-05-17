@@ -98,6 +98,22 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.run-area-select {
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 0.5px solid var(--border-2);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  color: var(--text);
+  font-family: var(--font);
+  min-width: 200px;
+  cursor: pointer;
+}
+.run-area-select:focus {
+  outline: 2px solid var(--blue-text);
+  outline-offset: 1px;
+}
+
 .btn-primary {
   background: var(--bg);
   border: 0.5px solid var(--border-2);
@@ -456,6 +472,19 @@ body {
   border: 0.5px solid var(--border-2);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  background: var(--bg-2);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.editor-toolbar .btn-ghost {
+  font-size: 12px;
+  padding: 4px 10px;
 }
 
 .monaco-mount {

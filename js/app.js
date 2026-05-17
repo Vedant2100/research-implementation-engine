@@ -24,8 +24,9 @@ import {
   toggleSettings,
   attachEditorPanels,
 } from "./ui.js";
-import { RESEARCH_AREAS } from "./prompt.js";
-import { getCode, saveCode, getStatus, setStatus } from "./code-store.js";
+import { RESEARCH_AREAS, RUN_AREAS, getAreaById } from "./prompt.js";
+import { getCode, saveCode, getStatus, setStatus, clearCode } from "./code-store.js";
+import { getHarness } from "./harnesses.js";
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let db = loadDB();
@@ -36,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   db = loadDB(); // pick up starter seed on first visit
   initLog();
   buildFilterBar();
+  buildRunAreaSelect();
   buildAreaBadges();
   wireEvents();
   refreshUI();
@@ -59,28 +61,54 @@ function wireEvents() {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
 
-  attachEditorPanels(getCode, saveCode, setStatus);
+  attachEditorPanels(
+    (title) => getCode(title, db.assignments.find((a) => a.title === title)),
+    saveCode,
+    setStatus,
+    clearCode,
+    getHarness
+  );
 }
 
 // ─── Run cycle ─────────────────────────────────────────────────────────────
 async function onRun() {
+  const areaId = document.getElementById("run-area-select").value;
+  const area = getAreaById(areaId);
+  if (!area) {
+    alert("Pick a research area first (dropdown to the left of Run).");
+    document.getElementById("run-area-select").focus();
+    return;
+  }
+
   setRunning(true);
   setProgress(10);
   log(`Starting research cycle #${db.runCount + 1}`, "search");
-  log("Focus: agentic security · self-improving agents · LLMs · RL", "search");
+  log(`Area: ${area.label} · 1 assignment max · harness auto-generated`, "search");
   setProgress(30);
 
   try {
     const existingTitles = db.papers.map((p) => p.title);
+    const existingAssignmentTitles = db.assignments.map((a) => a.title);
     const { papers, assignments, searchCount } = await runResearchAgent(
       existingTitles,
-      (msg, type) => log(msg, type)
+      (msg, type) => log(msg, type),
+      {
+        areaId: area.id,
+        areaLabel: area.label,
+        existingAssignmentTitles,
+      }
     );
 
     setProgress(80);
 
     const newPapers = dedupe(papers, db.papers);
     const newAssigns = dedupe(assignments, db.assignments);
+
+    for (const a of newAssigns) {
+      if (a.code_harness && String(a.code_harness).trim()) {
+        saveCode(a.title, a.code_harness);
+      }
+    }
 
     db.papers.push(...newPapers);
     db.assignments.push(...newAssigns);
@@ -188,6 +216,16 @@ function refreshUI() {
   renderPapers(db.papers);
 }
 
+function buildRunAreaSelect() {
+  const sel = document.getElementById("run-area-select");
+  RUN_AREAS.forEach((area) => {
+    const opt = document.createElement("option");
+    opt.value = area.id;
+    opt.textContent = area.label;
+    sel.appendChild(opt);
+  });
+}
+
 function buildFilterBar() {
   const bar = document.getElementById("filter-bar");
   const allBtn = document.createElement("button");
@@ -221,7 +259,7 @@ function buildAreaBadges() {
 function onFilter(area) {
   currentFilter = area;
   setActiveFilter(area);
-  renderAssignments(db.assignments, currentFilter);
+  renderAssignments(db.assignments, currentFilter, getStatus);
 }
 
 function log(msg, type) {

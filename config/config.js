@@ -16,7 +16,7 @@ export const CONFIG = {
   MODEL: "claude-sonnet-4-20250514",
 
   // Max tokens for the research agent response
-  MAX_TOKENS: 4000,
+  MAX_TOKENS: 16000,
 
   // Enable web search on each run (costs slightly more, but finds latest papers)
   ENABLE_WEB_SEARCH: true,

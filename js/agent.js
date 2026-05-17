@@ -31,12 +31,18 @@ if (CONFIG.ENABLE_WEB_SEARCH) {
  * @param {function} onLog - callback(message, type) for streaming log updates
  * @returns {{ papers: object[], assignments: object[], searchCount: number }}
  */
-export async function runResearchAgent(existingTitles = [], onLog = () => {}) {
+export async function runResearchAgent(
+  existingTitles = [],
+  onLog = () => {},
+  { areaId, areaLabel, existingAssignmentTitles = [] } = {}
+) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("No API key set. Add it in Settings.");
+  if (!areaId || !areaLabel) throw new Error("Pick a research area before running.");
 
-  const userMessage = buildUserMessage(existingTitles);
+  const userMessage = buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles);
 
+  onLog(`Researching: ${areaLabel} (1 assignment max)...`, "search");
   onLog("Calling Anthropic API with web search enabled...", "search");
 
   const body = {
@@ -93,26 +99,48 @@ function parseResponse(data, onLog) {
   const parsed = JSON.parse(cleaned.substring(start, end + 1));
 
   const papers = Array.isArray(parsed.papers) ? parsed.papers : [];
-  const assignments = Array.isArray(parsed.assignments) ? parsed.assignments : [];
+  let assignments = Array.isArray(parsed.assignments) ? parsed.assignments : [];
+  if (assignments.length > 1) {
+    onLog(`Agent returned ${assignments.length} assignments — keeping best (first) only`, "search");
+    assignments = assignments.slice(0, 1);
+  }
 
-  onLog(`Parsed ${papers.length} papers, ${assignments.length} assignments`, "ok");
+  const harness = assignments[0]?.code_harness;
+  if (harness && String(harness).trim().length > 100) {
+    onLog("Code harness included — will open in editor", "ok");
+  } else if (assignments.length) {
+    onLog("Warning: assignment missing code_harness", "err");
+  }
+
+  onLog(`Parsed ${papers.length} papers, ${assignments.length} assignment`, "ok");
   return { papers, assignments, searchCount: searchBlocks.length };
 }
 
 // ─── Message builder ───────────────────────────────────────────────────────
-function buildUserMessage(existingTitles) {
-  const existing =
+function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles) {
+  const existingPapers =
     existingTitles.length > 0
-      ? `Already in database — do NOT repeat these:\n${existingTitles.join("\n")}`
-      : "Database is empty — this is the first run.";
+      ? `Papers already in database — do NOT repeat:\n${existingTitles.join("\n")}`
+      : "No papers in database yet.";
+
+  const existingAssigns =
+    existingAssignmentTitles.length > 0
+      ? `Assignments already built — do NOT repeat these topics/titles:\n${existingAssignmentTitles.join("\n")}`
+      : "No prior assignments in database.";
 
   return `
-Research the latest 2024-2025 papers in all focus areas, with extra emphasis on
-agentic security and self-improving agents this run.
+THIS RUN — FOCUS AREA: ${areaLabel}
+area id (use in JSON "area" field): ${areaId}
 
-${existing}
+Do deep, proper research ONLY in this area. Use web search. Find the best recent papers
+and design exactly ONE assignment that teaches the maximum depth (one end-to-end
+PyTorch project, not a survey). Include a complete code_harness Python skeleton.
 
-Find NEW papers not listed above. Generate 5-8 papers and 4-6 assignments.
+${existingPapers}
+
+${existingAssigns}
+
+Output: 4-6 papers (all area="${areaId}"), exactly 1 assignment (area="${areaId}").
 Return ONLY valid JSON. No markdown fences. No preamble.
   `.trim();
 }

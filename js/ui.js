@@ -105,13 +105,16 @@ function assignmentCard(a, status = "todo") {
     ${actionBtnHtml}
   </div>
   <div class="editor-wrap" style="display:none;">
+    <div class="editor-toolbar">
+      <button type="button" class="btn-ghost reset-harness-btn">Reset to template</button>
+    </div>
     <div class="monaco-mount"></div>
   </div>
 </div>`;
 }
 
 // ─── Editor panels ─────────────────────────────────────────────────────────
-export function attachEditorPanels(getCode, saveCode, setStatus) {
+export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getHarness) {
   const container = document.getElementById("assignments-container");
   container.addEventListener("click", (e) => {
     const card = e.target.closest(".assignment-card");
@@ -126,6 +129,12 @@ export function attachEditorPanels(getCode, saveCode, setStatus) {
         wrap.dataset.initialized = "1";
         _initMonaco(wrap.querySelector(".monaco-mount"), title, getCode, saveCode);
       }
+    }
+
+    if (e.target.closest(".reset-harness-btn")) {
+      clearCode(title);
+      const mount = card.querySelector(".monaco-mount");
+      if (mount._editor) mount._editor.setValue(getHarness(title));
     }
 
     if (e.target.closest(".mark-done-btn")) {
@@ -155,6 +164,7 @@ function _initMonaco(mountEl, title, getCode, saveCode) {
       padding: { top: 10, bottom: 10 },
     });
     let t;
+    mountEl._editor = editor;
     editor.onDidChangeModelContent(() => {
       clearTimeout(t);
       t = setTimeout(() => saveCode(title, editor.getValue()), 500);
