@@ -73,6 +73,11 @@ function assignmentCard(a) {
   <p class="ac-label">Tasks</p>
   <ul class="task-list">${tasks}</ul>
 
+  ${(a.verification || []).length
+    ? `<p class="ac-label">How to verify</p>
+       <ul class="task-list">${(a.verification || []).map((v) => `<li>${esc(v)}</li>`).join("")}</ul>`
+    : ""}
+
   ${a.debug_hints ? `<p class="ac-label">Debug hint</p><p class="ac-desc">${esc(a.debug_hints)}</p>` : ""}
 
   ${a.starter_code_hint

@@ -9,7 +9,7 @@
  * the appropriate ui.js render function.
  */
 
-import { loadDB, saveDB, clearDB, getApiKey, saveApiKey } from "./storage.js";
+import { loadDB, saveDB, clearDB, getApiKey, saveApiKey, consumeSeedNotice } from "./storage.js";
 import { runResearchAgent } from "./agent.js";
 import {
   renderStats,
@@ -31,12 +31,17 @@ let currentFilter = "all";
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
+  db = loadDB(); // pick up starter seed on first visit
   initLog();
   buildFilterBar();
   buildAreaBadges();
   wireEvents();
   refreshUI();
   prefillApiKey();
+  const seeded = consumeSeedNotice();
+  if (seeded > 0) {
+    log(`Loaded ${seeded} starter items (transformers + RL, medium).`, "ok");
+  }
 });
 
 // ─── Events ────────────────────────────────────────────────────────────────
@@ -151,6 +156,10 @@ function buildMarkdownExport(db) {
     lines.push("**Objective:** " + a.learning_objective, "");
     lines.push("**Tasks:**");
     (a.tasks || []).forEach((t) => lines.push("- " + t));
+    if ((a.verification || []).length) {
+      lines.push("", "**How to verify:**");
+      a.verification.forEach((v) => lines.push("- " + v));
+    }
     if (a.stretch_goal) lines.push("", "**Stretch:** " + a.stretch_goal);
     if (a.debug_hints) lines.push("", "**Debug hint:** " + a.debug_hints);
     lines.push("", "---", "");

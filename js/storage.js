@@ -7,20 +7,61 @@
  */
 
 import { CONFIG } from "../config/config.js";
+import { SEED_VERSION, SEED_PAPERS, SEED_ASSIGNMENTS } from "./seed.js";
 
 const KEY = CONFIG.STORAGE_KEY;
+const SEED_FLAG = `research_engine_seed_${SEED_VERSION}`;
 
 export function loadDB() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return freshDB();
-    const db = JSON.parse(raw);
+    const db = raw ? JSON.parse(raw) : freshDB();
     db.areas = new Set(db.areas || []);
-    return db;
+    return applySeedIfNeeded(db);
   } catch (e) {
     console.warn("Storage load failed, starting fresh:", e);
-    return freshDB();
+    return applySeedIfNeeded(freshDB());
   }
+}
+
+function applySeedIfNeeded(db) {
+  if (localStorage.getItem(SEED_FLAG)) return db;
+
+  const titles = new Set([
+    ...db.papers.map((p) => p.title?.toLowerCase()),
+    ...db.assignments.map((a) => a.title?.toLowerCase()),
+  ]);
+
+  let added = 0;
+  for (const p of SEED_PAPERS) {
+    if (!titles.has(p.title.toLowerCase())) {
+      db.papers.push(p);
+      if (p.area) db.areas.add(p.area);
+      titles.add(p.title.toLowerCase());
+      added++;
+    }
+  }
+  for (const a of SEED_ASSIGNMENTS) {
+    if (!titles.has(a.title.toLowerCase())) {
+      db.assignments.push(a);
+      if (a.area) db.areas.add(a.area);
+      titles.add(a.title.toLowerCase());
+      added++;
+    }
+  }
+
+  if (added > 0) {
+    saveDB(db);
+    sessionStorage.setItem("research_engine_seed_notice", String(added));
+  }
+  localStorage.setItem(SEED_FLAG, "1");
+  return db;
+}
+
+export function consumeSeedNotice() {
+  const n = sessionStorage.getItem("research_engine_seed_notice");
+  if (n) sessionStorage.removeItem("research_engine_seed_notice");
+  return n ? Number(n) : 0;
 }
 
 export function saveDB(db) {
