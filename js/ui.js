@@ -106,7 +106,7 @@ function assignmentCard(a, status = "todo") {
   </div>
   <div class="editor-wrap" style="display:none;">
     <div class="editor-toolbar">
-      <button type="button" class="btn-ghost reset-harness-btn">Reset to template</button>
+      <button type="button" class="btn-ghost reset-harness-btn">Reset build guide</button>
     </div>
     <div class="monaco-mount"></div>
   </div>
@@ -134,7 +134,7 @@ export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getH
     if (e.target.closest(".reset-harness-btn")) {
       clearCode(title);
       const mount = card.querySelector(".monaco-mount");
-      if (mount._editor) mount._editor.setValue(getHarness(title));
+      if (mount._editor) mount._editor.setValue(getBuildGuide(title));
     }
 
     if (e.target.closest(".mark-done-btn")) {

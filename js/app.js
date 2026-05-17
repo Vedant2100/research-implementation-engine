@@ -26,7 +26,7 @@ import {
 } from "./ui.js";
 import { RESEARCH_AREAS, RUN_AREAS, getAreaById } from "./prompt.js";
 import { getCode, saveCode, getStatus, setStatus, clearCode } from "./code-store.js";
-import { getHarness } from "./harnesses.js";
+import { getBuildGuide } from "./build-guides.js";
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let db = loadDB();
@@ -66,7 +66,7 @@ function wireEvents() {
     saveCode,
     setStatus,
     clearCode,
-    getHarness
+    getBuildGuide
   );
 }
 
@@ -105,8 +105,11 @@ async function onRun() {
     const newAssigns = dedupe(assignments, db.assignments);
 
     for (const a of newAssigns) {
-      if (a.code_harness && String(a.code_harness).trim()) {
-        saveCode(a.title, a.code_harness);
+      const guide = a.code_build_guide || a.code_harness;
+      if (guide && String(guide).trim()) {
+        saveCode(a.title, guide);
+        a.code_build_guide = guide;
+        delete a.code_harness;
       }
     }
 

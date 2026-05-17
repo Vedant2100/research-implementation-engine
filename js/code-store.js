@@ -1,4 +1,9 @@
-import { getHarness } from "./harnesses.js";
+import { getBuildGuide } from "./build-guides.js";
+
+function guideFromAssignment(assignment) {
+  if (!assignment) return "";
+  return assignment.code_build_guide || assignment.code_harness || "";
+}
 
 const CODE_KEY   = "research_engine_code";
 const STATUS_KEY = "research_engine_status";
@@ -15,13 +20,13 @@ export function getCode(title, assignment = null) {
     const key = slugTitle(title);
     const saved = (JSON.parse(localStorage.getItem(CODE_KEY) || "{}"))[key];
     if (saved !== undefined && String(saved).trim() !== "") return saved;
-    if (assignment?.code_harness && String(assignment.code_harness).trim()) {
-      return assignment.code_harness;
-    }
-    return getHarness(title);
+    const fromAssign = guideFromAssignment(assignment);
+    if (fromAssign.trim()) return fromAssign;
+    return getBuildGuide(title);
   } catch {
-    if (assignment?.code_harness) return assignment.code_harness;
-    return getHarness(title);
+    const fromAssign = guideFromAssignment(assignment);
+    if (fromAssign.trim()) return fromAssign;
+    return getBuildGuide(title);
   }
 }
 

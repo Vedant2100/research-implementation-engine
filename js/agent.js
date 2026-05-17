@@ -105,11 +105,11 @@ function parseResponse(data, onLog) {
     assignments = assignments.slice(0, 1);
   }
 
-  const harness = assignments[0]?.code_harness;
-  if (harness && String(harness).trim().length > 100) {
-    onLog("Code harness included — will open in editor", "ok");
+  const guide = assignments[0]?.code_build_guide || assignments[0]?.code_harness;
+  if (guide && String(guide).trim().length > 100) {
+    onLog("Build guide (comments) included — open Code on the card", "ok");
   } else if (assignments.length) {
-    onLog("Warning: assignment missing code_harness", "err");
+    onLog("Warning: assignment missing code_build_guide", "err");
   }
 
   onLog(`Parsed ${papers.length} papers, ${assignments.length} assignment`, "ok");
@@ -134,7 +134,8 @@ area id (use in JSON "area" field): ${areaId}
 
 Do deep, proper research ONLY in this area. Use web search. Find the best recent papers
 and design exactly ONE assignment that teaches the maximum depth (one end-to-end
-PyTorch project, not a survey). Include a complete code_harness Python skeleton.
+PyTorch project, not a survey). Include code_build_guide: comment-only steps (# lines),
+no class skeletons or NotImplementedError stubs.
 
 ${existingPapers}
 
