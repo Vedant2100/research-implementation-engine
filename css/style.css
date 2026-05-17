@@ -417,6 +417,52 @@ body {
   margin-top: 1.25rem;
 }
 
+/* ─── Assignment action bar ────────────────────────────────────────────── */
+.ac-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+}
+
+.ac-action-bar .btn-ghost {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
+.status-badge {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.status-done {
+  background: var(--green-bg);
+  color: var(--green-text);
+}
+
+.ac-done {
+  border-color: var(--green-text);
+  opacity: 0.75;
+}
+
+/* ─── Monaco editor panel ───────────────────────────────────────────────── */
+.editor-wrap {
+  margin-top: 12px;
+  border: 0.5px solid var(--border-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.monaco-mount {
+  height: 300px;
+  width: 100%;
+}
+
 /* ─── Spin animation ───────────────────────────────────────────────────── */
 @keyframes spin { from { display: inline-block; transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spin { display: inline-block; animation: spin 1s linear infinite; }

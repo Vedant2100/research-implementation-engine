@@ -22,8 +22,10 @@ import {
   switchTab,
   setActiveFilter,
   toggleSettings,
+  attachEditorPanels,
 } from "./ui.js";
 import { RESEARCH_AREAS } from "./prompt.js";
+import { getCode, saveCode, getStatus, setStatus } from "./code-store.js";
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let db = loadDB();
@@ -56,6 +58,8 @@ function wireEvents() {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
+
+  attachEditorPanels(getCode, saveCode, setStatus);
 }
 
 // ─── Run cycle ─────────────────────────────────────────────────────────────
@@ -180,7 +184,7 @@ function buildMarkdownExport(db) {
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function refreshUI() {
   renderStats(db);
-  renderAssignments(db.assignments, currentFilter);
+  renderAssignments(db.assignments, currentFilter, getStatus);
   renderPapers(db.papers);
 }
 
