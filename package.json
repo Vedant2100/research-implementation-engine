@@ -1,0 +1,17 @@
+{
+  "name": "pytorch-research-engine",
+  "version": "1.0.0",
+  "description": "Research latest AI papers and generate deep PyTorch assignments each run.",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . --cors -p 3000",
+    "start": "npx serve . --cors -p 3000",
+    "open": "npx serve . --cors -p 3000 --open"
+  },
+  "devDependencies": {
+    "serve": "^14.2.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
