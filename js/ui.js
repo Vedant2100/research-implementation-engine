@@ -26,7 +26,7 @@ export function renderStats(db) {
 }
 
 // ─── Assignments ───────────────────────────────────────────────────────────
-export function renderAssignments(assignments, filter = "all") {
+export function renderAssignments(assignments, filter = "all", getStatus = () => "todo") {
   const container = document.getElementById("assignments-container");
   const filtered =
     filter === "all" ? assignments : assignments.filter((a) => a.area === filter);
@@ -42,17 +42,25 @@ export function renderAssignments(assignments, filter = "all") {
     return;
   }
 
-  container.innerHTML = sorted.map(assignmentCard).join("");
+  container.innerHTML = sorted.map((a) => assignmentCard(a, getStatus(a.title))).join("");
 }
 
-function assignmentCard(a) {
+function assignmentCard(a, status = "todo") {
   const color = AREA_COLOR[a.area] || "blue";
   const diffClass = { hard: "diff-hard", medium: "diff-medium", starter: "diff-starter" }[a.difficulty] || "diff-medium";
   const concepts = (a.key_pytorch_concepts || []).slice(0, 3);
   const tasks = (a.tasks || []).map((t) => `<li>${esc(t)}</li>`).join("");
 
+  const statusBadgeHtml = status === "done"
+    ? `<span class="status-badge status-done">Done</span>`
+    : `<span class="status-badge" style="display:none"></span>`;
+
+  const actionBtnHtml = status === "done"
+    ? `<button class="btn-ghost mark-reset-btn">Reset</button>`
+    : `<button class="btn-ghost mark-done-btn">Mark done</button>`;
+
   return `
-<div class="assignment-card" data-area="${esc(a.area)}">
+<div class="assignment-card${status === "done" ? " ac-done" : ""}" data-area="${esc(a.area)}" data-title="${esc(a.title)}">
   <div class="ac-header">
     <span class="ac-title">${esc(a.title)}</span>
     <span class="ac-diff ${diffClass}">${esc(a.difficulty)} · ~${a.estimated_hours || "?"}h</span>
@@ -90,7 +98,82 @@ function assignmentCard(a) {
          <strong>Stretch:</strong> ${esc(a.stretch_goal)}
        </div>`
     : ""}
+
+  <div class="ac-action-bar">
+    <button class="btn-ghost code-toggle-btn"><i class="ti ti-code" style="vertical-align:-2px;margin-right:4px;"></i>Code</button>
+    ${statusBadgeHtml}
+    ${actionBtnHtml}
+  </div>
+  <div class="editor-wrap" style="display:none;">
+    <div class="monaco-mount"></div>
+  </div>
 </div>`;
+}
+
+// ─── Editor panels ─────────────────────────────────────────────────────────
+export function attachEditorPanels(getCode, saveCode, setStatus) {
+  const container = document.getElementById("assignments-container");
+  container.addEventListener("click", (e) => {
+    const card = e.target.closest(".assignment-card");
+    if (!card) return;
+    const title = card.dataset.title;
+
+    if (e.target.closest(".code-toggle-btn")) {
+      const wrap = card.querySelector(".editor-wrap");
+      const opening = wrap.style.display === "none";
+      wrap.style.display = opening ? "block" : "none";
+      if (opening && !wrap.dataset.initialized) {
+        wrap.dataset.initialized = "1";
+        _initMonaco(wrap.querySelector(".monaco-mount"), title, getCode, saveCode);
+      }
+    }
+
+    if (e.target.closest(".mark-done-btn")) {
+      setStatus(title, "done");
+      _applyStatus(card, "done");
+    }
+
+    if (e.target.closest(".mark-reset-btn")) {
+      setStatus(title, "todo");
+      _applyStatus(card, "todo");
+    }
+  });
+}
+
+function _initMonaco(mountEl, title, getCode, saveCode) {
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  window.monacoReady.then(() => {
+    const editor = monaco.editor.create(mountEl, {
+      value: getCode(title),
+      language: "python",
+      theme: dark ? "vs-dark" : "vs",
+      minimap: { enabled: false },
+      fontSize: 13,
+      lineNumbers: "on",
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      padding: { top: 10, bottom: 10 },
+    });
+    let t;
+    editor.onDidChangeModelContent(() => {
+      clearTimeout(t);
+      t = setTimeout(() => saveCode(title, editor.getValue()), 500);
+    });
+  });
+}
+
+function _applyStatus(card, status) {
+  card.classList.toggle("ac-done", status === "done");
+  const badge = card.querySelector(".status-badge");
+  if (badge) {
+    badge.className = `status-badge${status === "done" ? " status-done" : ""}`;
+    badge.textContent = status === "done" ? "Done" : "";
+    badge.style.display = status === "done" ? "inline-block" : "none";
+  }
+  const doneBtn  = card.querySelector(".mark-done-btn");
+  const resetBtn = card.querySelector(".mark-reset-btn");
+  if (doneBtn)  doneBtn.style.display  = status === "done" ? "none"         : "inline-block";
+  if (resetBtn) resetBtn.style.display = status === "done" ? "inline-block" : "none";
 }
 
 // ─── Papers ────────────────────────────────────────────────────────────────
