@@ -14,7 +14,7 @@ const SEED_FLAG = `research_engine_seed_${SEED_VERSION}`;
 const PROFILE_KEY = "research_engine_student_profile";
 const CODE_KEY = "research_engine_code";
 const STATUS_KEY = "research_engine_status";
-const STARTER_PRUNE_FLAG = "research_engine_pruned_starters_tiny_attention_runnable_tests_v2";
+const STARTER_PRUNE_FLAG = "research_engine_pruned_starters_tiny_attention_tests_bottom_v3";
 
 const KEEP_STARTER_TITLE = "Tiny attention by hand";
 const OLD_STARTER_TITLES = [

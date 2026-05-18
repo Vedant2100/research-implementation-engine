@@ -35,8 +35,8 @@ Each run the student picks exactly ONE focus area. You must:
 2. Return EXACTLY 1 assignment.
 3. Size the assignment to the student's profile and completed work.
 4. Teach a concept ladder before expecting paper reproduction.
-5. Include code_build_guide: one runnable Python file with TODO comment zones
-   plus executable tests/checks, but no completed solution.
+5. Include code_build_guide: one runnable Python file with student code stubs
+   at the top and executable tests/checks at the bottom, but no completed solution.
 6. Return ONLY valid JSON.
 
 The student may be new to PyTorch. Do not assume they can jump straight into a
@@ -105,14 +105,17 @@ DO include:
 - STEP 0: single-file layout and commands to run.
 - Use exactly ONE Python file for the whole assignment, usually "assignment.py".
 - Minimal imports needed by the tests/checks.
-- Clearly marked TODO comment zones where the student writes implementation.
-- Executable test/check functions after each module/function/step they validate.
+- Student implementation section first: imports, function signatures, class
+  signatures, and TODO placeholders only.
+- No hints in the student implementation section. No formulas, solution
+  directions, or explanatory pseudocode there.
+- Executable test/check functions only after all student code stubs.
 - A main() runner at the bottom that calls all tests/checks in order and prints
   progress.
 - Do not ask the student to create train.py, eval.py, tests/, packages, or multiple modules.
 - STEP 1..N: one section per module/function/milestone, including names and
-  tensor shapes.
-- After EACH module/function/step, include real Python check code in this style:
+  tensor shapes. Tests still go at the bottom, not between stubs.
+- In the bottom test section, include real Python check code in this style:
   def test_name():
       # CHECK: what this validates
       # EXPECT: expected shape/value/trend
@@ -167,7 +170,7 @@ Return exactly this structure. No markdown, no preamble, nothing else:
         }
       ],
       "key_pytorch_concepts": ["concept1", "concept2", "concept3"],
-      "code_build_guide": "Single Python file string: TODO comments plus executable test/check code, no completed solution."
+      "code_build_guide": "Single Python file string: student code signatures/stubs at top, executable tests/checks at bottom, no completed solution."
     }
   ]
 }
