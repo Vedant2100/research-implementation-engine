@@ -3,6 +3,7 @@ node_modules/
 *.env
 .env
 .env.local
+.claude/
 
 # If you hardcode your API key in config/config.js, uncomment this:
 # config/config.js

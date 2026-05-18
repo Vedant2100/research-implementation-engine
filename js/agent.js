@@ -17,7 +17,10 @@ export async function runResearchAgent(
   { areaId, areaLabel, existingAssignmentTitles = [] } = {}
 ) {
   const apiKey = getApiKey();
-  if (!apiKey) throw new Error("No API key set. Add it in Settings.");
+  const usingProxy = !!CONFIG.PROXY_URL;
+  if (!apiKey && !usingProxy) {
+    throw new Error("No API key set. Add it in Settings (or start the dev proxy).");
+  }
   if (!areaId || !areaLabel) throw new Error("Pick a research area before running.");
 
   const provider = getProvider();
@@ -48,13 +51,15 @@ async function callOpenAICompatible(provider, apiKey, userMessage, onLog) {
   const url = CONFIG.PROXY_URL
     ? `${CONFIG.PROXY_URL.replace(/\/$/, "")}/chat/completions`
     : `${provider.baseUrl}/chat/completions`;
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
   const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      Accept: "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 

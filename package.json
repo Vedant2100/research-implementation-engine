@@ -4,11 +4,14 @@
   "description": "Research latest AI papers and generate deep PyTorch assignments each run.",
   "private": true,
   "scripts": {
-    "dev": "npx serve . --cors -p 3000",
-    "start": "npx serve . --cors -p 3000",
+    "dev:web": "npx serve . --cors -p 3000",
+    "dev:proxy": "node scripts/dev-proxy.mjs",
+    "dev": "concurrently -k -n web,proxy -c blue,magenta \"npm:dev:web\" \"npm:dev:proxy\"",
+    "start": "npm run dev",
     "open": "npx serve . --cors -p 3000 --open"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "serve": "^14.2.3"
   },
   "engines": {

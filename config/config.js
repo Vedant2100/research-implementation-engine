@@ -42,11 +42,11 @@ export const PROVIDERS = {
 export const CONFIG = {
   PROVIDER: "nvidia",
 
-  // Optional proxy that prepends the provider baseUrl path.
-  // Required for NVIDIA NIM / DeepSeek / Gemini from GitHub Pages (no CORS).
-  // Leave empty for local development with `npm run dev` (CORS bypass via dev server).
-  // Example Cloudflare Worker: "https://nim-proxy.<your>.workers.dev"
-  PROXY_URL: "",
+  // Optional proxy URL that holds the API key server-side.
+  // Local dev: `npm run dev` starts scripts/dev-proxy.mjs on :3001 reading .env.
+  // Production (GitHub Pages): deploy the same script as a Cloudflare Worker
+  //   or Vercel function and set this to its URL.
+  PROXY_URL: "http://localhost:3001/v1",
 
   API_KEY: "",
 
