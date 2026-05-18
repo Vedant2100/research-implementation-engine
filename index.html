@@ -23,6 +23,45 @@
     <p class="settings-hint" id="settings-hint">
       Get your key from the configured provider. Stored in localStorage only.
     </p>
+    <div class="settings-section">
+      <h3>Student profile</h3>
+      <p>Used only to size assignments and pick the next right step.</p>
+      <div class="profile-grid">
+        <label>
+          <span>Comfort level</span>
+          <select id="profile-level">
+            <option value="beginner">Beginner</option>
+            <option value="building">Building basics</option>
+            <option value="intermediate">Intermediate</option>
+          </select>
+        </label>
+        <label>
+          <span>Compute</span>
+          <select id="profile-compute">
+            <option value="cpu">CPU / laptop</option>
+            <option value="single_gpu">Single GPU</option>
+            <option value="cloud_gpu">Cloud GPU</option>
+          </select>
+        </label>
+        <label>
+          <span>Weekly time</span>
+          <select id="profile-hours">
+            <option value="2-4">2-4 hours</option>
+            <option value="4-6">4-6 hours</option>
+            <option value="6-10">6-10 hours</option>
+            <option value="10+">10+ hours</option>
+          </select>
+        </label>
+        <label>
+          <span>Teaching style</span>
+          <select id="profile-style">
+            <option value="guided">Very guided</option>
+            <option value="balanced">Balanced</option>
+            <option value="challenge">Challenge me</option>
+          </select>
+        </label>
+      </div>
+    </div>
     <div class="settings-footer">
       <button class="btn-ghost" id="settings-close-alt">Cancel</button>
       <button class="btn-primary" id="save-key-btn"><i class="ti ti-device-floppy"></i> Save key</button>

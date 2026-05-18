@@ -481,6 +481,75 @@ a:hover { text-decoration: underline; }
   margin-top: 14px;
   margin-bottom: 6px;
 }
+.learning-callout,
+.next-step {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin: 12px 0;
+  background: var(--surface-2);
+}
+.learning-callout {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: var(--accent-soft);
+}
+.learning-callout span,
+.next-step span {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.learning-callout p,
+.next-step p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.compact-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin-bottom: 4px;
+}
+.compact-list li {
+  font-size: 13px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 7px 9px;
+}
+.milestone-list {
+  display: grid;
+  gap: 8px;
+}
+.milestone-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.milestone-card strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.milestone-card p {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.milestone-card span {
+  display: block;
+  font-size: 12px;
+  color: var(--ok);
+  margin-top: 5px;
+}
 
 .task-list { list-style: none; }
 .task-list li {
@@ -753,6 +822,52 @@ body:has(#settings-panel[style*="display:block"])  .settings-backdrop {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .settings-hint { font-size: 12px; color: var(--text-3); margin-top: 6px; line-height: 1.55; }
+.settings-section {
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.settings-section h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.settings-section p {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 10px;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.profile-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.profile-grid span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.profile-grid select {
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.profile-grid select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
 .settings-footer {
   display: flex;
   justify-content: flex-end;
@@ -783,6 +898,7 @@ body:has(#settings-panel[style*="display:block"])  .settings-backdrop {
   .run-area-select { min-width: 0; width: 100%; }
   .btn-run { flex: 1; justify-content: center; }
   .tab-btn span { display: inline; }
+  .profile-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 980px) {

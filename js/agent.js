@@ -49,7 +49,13 @@ const MAX_TOOL_HOPS = 3;
 export async function runResearchAgent(
   existingTitles = [],
   onLog = () => {},
-  { areaId, areaLabel, existingAssignmentTitles = [] } = {}
+  {
+    areaId,
+    areaLabel,
+    existingAssignmentTitles = [],
+    completedAssignmentTitles = [],
+    studentProfile = {},
+  } = {}
 ) {
   const apiKey = getApiKey();
   const usingProxy = !!CONFIG.PROXY_URL;
@@ -63,7 +69,9 @@ export async function runResearchAgent(
     existingTitles,
     areaId,
     areaLabel,
-    existingAssignmentTitles
+    existingAssignmentTitles,
+    completedAssignmentTitles,
+    studentProfile
   );
 
   onLog(
@@ -254,14 +262,28 @@ function parseResponse(rawText, searchCount, onLog) {
   return { papers, assignments, searchCount };
 }
 
-function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles) {
-  const inAreaCount = existingAssignmentTitles.length;
+function buildUserMessage(
+  existingTitles,
+  areaId,
+  areaLabel,
+  existingAssignmentTitles,
+  completedAssignmentTitles,
+  studentProfile
+) {
+  const completedCount = completedAssignmentTitles.length;
+  const profile = {
+    level: "beginner",
+    compute: "cpu",
+    weeklyHours: "4-6",
+    style: "guided",
+    ...studentProfile,
+  };
   const progressNote =
-    inAreaCount === 0
-      ? "STAGE: foundational. The user has done 0 assignments in this area. Pick a canonical, well-understood paper from your training knowledge. No need to search arXiv."
-      : inAreaCount < 3
-      ? `STAGE: building (done ${inAreaCount}). You MAY call search_arxiv if you want to push beyond basics, but a strong known paper is also fine.`
-      : `STAGE: advanced (done ${inAreaCount} in this area). You SHOULD call search_arxiv at least once to find a recent/novel paper. Avoid repeating concepts already covered.`;
+    completedCount === 0
+      ? "STAGE: foundations. The student has completed 0 assignments in this area. Teach prerequisites first. Prefer a canonical paper and a tiny reproducible project. Do not search unless the area truly has no canonical beginner anchor."
+      : completedCount < 3
+      ? `STAGE: scaffolded builder. The student has completed ${completedCount} assignment(s) in this area. Introduce one paper idea at a time, with clear checkpoints. Search is optional.`
+      : `STAGE: paper reproduction. The student has completed ${completedCount} assignment(s) in this area. You SHOULD call search_arxiv at least once to find a recent/novel paper and avoid covered concepts.`;
 
   const existingPapers =
     existingTitles.length > 0
@@ -273,23 +295,41 @@ function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentT
       ? `Assignments already built — do NOT repeat these topics:\n${existingAssignmentTitles.join("\n")}`
       : "No prior assignments in database.";
 
+  const completedAssigns =
+    completedAssignmentTitles.length > 0
+      ? `Assignments the student marked DONE in this area:\n${completedAssignmentTitles.join("\n")}`
+      : "No assignments marked done in this area yet.";
+
   return `
 THIS RUN — FOCUS AREA: ${areaLabel}
 area id (use in JSON "area" field): ${areaId}
 
 ${progressNote}
 
+STUDENT PROFILE:
+- level: ${profile.level}
+- compute: ${profile.compute}
+- weekly hours: ${profile.weeklyHours}
+- teaching style: ${profile.style}
+
+Treat this as a naive student unless profile says otherwise. If profile.level is beginner,
+make the first checkpoint doable in 30 minutes, include prerequisite concepts, and avoid
+large-scale training. Use tiny synthetic or toy datasets when needed, but still connect the
+work to a real paper.
+
 You have one tool available: search_arxiv(query, max_results). Use it when knowledge
 of recent (post-2024) papers in this area would noticeably improve the assignment.
 Otherwise skip it and answer directly — tool calls cost latency.
 
-Design exactly ONE end-to-end PyTorch assignment that maximizes teaching value at
-medium difficulty. Show which paper you picked and briefly why over runner-ups.
+Design exactly ONE end-to-end PyTorch assignment that maximizes teaching value for
+the student's current stage. Show which paper you picked and why over runner-ups.
 Include code_build_guide: comment-only steps (# lines), no class skeletons.
 
 ${existingPapers}
 
 ${existingAssigns}
+
+${completedAssigns}
 
 Output: 4-6 papers (all area="${areaId}"), exactly 1 assignment (area="${areaId}").
 Return ONLY valid JSON. No markdown fences. No preamble. No <think> tags.

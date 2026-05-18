@@ -50,6 +50,11 @@ function assignmentCard(a, status = "todo") {
   const diffClass = { hard: "diff-hard", medium: "diff-medium", starter: "diff-starter" }[a.difficulty] || "diff-medium";
   const concepts = (a.key_pytorch_concepts || []).slice(0, 3);
   const tasks = (a.tasks || []).map((t) => `<li>${esc(t)}</li>`).join("");
+  const prerequisites = renderCompactList(a.prerequisite_concepts || []);
+  const conceptLadder = renderCompactList(a.concept_ladder || []);
+  const checkpointTests = renderCompactList(a.checkpoint_tests || []);
+  const hintLevels = renderCompactList(a.hint_levels || []);
+  const milestones = renderMilestones(a.milestones || []);
 
   const statusBadgeHtml = status === "done"
     ? `<span class="status-badge status-done">Done</span>`
@@ -74,6 +79,23 @@ function assignmentCard(a, status = "todo") {
       <p class="ac-paper">Based on: ${esc(a.paper_ref || "")}</p>
       <p class="ac-desc">${esc(a.context || "")}</p>
 
+      ${a.why_now
+        ? `<div class="learning-callout">
+             <span>Why this next</span>
+             <p>${esc(a.why_now)}</p>
+           </div>`
+        : ""}
+
+      ${a.next_30_minutes
+        ? `<div class="next-step">
+             <span>First 30 minutes</span>
+             <p>${esc(a.next_30_minutes)}</p>
+           </div>`
+        : ""}
+
+      ${prerequisites ? `<p class="ac-label">Prerequisites</p>${prerequisites}` : ""}
+      ${conceptLadder ? `<p class="ac-label">Concept ladder</p>${conceptLadder}` : ""}
+
       <p class="ac-label">Objective</p>
       <p class="ac-desc ac-objective">${esc(a.learning_objective || "")}</p>
 
@@ -82,6 +104,10 @@ function assignmentCard(a, status = "todo") {
 
       <p class="ac-label">Tasks</p>
       <ul class="task-list">${tasks}</ul>
+
+      ${milestones ? `<p class="ac-label">Milestones</p>${milestones}` : ""}
+      ${checkpointTests ? `<p class="ac-label">Checkpoint tests</p>${checkpointTests}` : ""}
+      ${hintLevels ? `<p class="ac-label">Hint levels</p>${hintLevels}` : ""}
 
       ${(a.verification || []).length
         ? `<p class="ac-label">How to verify</p>
@@ -223,6 +249,27 @@ function paperCard(p) {
     ${p.pytorch_hook ? `<span class="badge badge-mono">🔧 ${esc(p.pytorch_hook)}</span>` : ""}
   </div>
 </div>`;
+}
+
+function renderCompactList(items) {
+  if (!Array.isArray(items) || !items.length) return "";
+  return `<ul class="compact-list">${items.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>`;
+}
+
+function renderMilestones(milestones) {
+  if (!Array.isArray(milestones) || !milestones.length) return "";
+  return `<div class="milestone-list">${milestones
+    .map((m, idx) => {
+      if (typeof m === "string") {
+        return `<div class="milestone-card"><strong>${idx + 1}. ${esc(m)}</strong></div>`;
+      }
+      return `<div class="milestone-card">
+        <strong>${idx + 1}. ${esc(m.title || "Milestone")}</strong>
+        ${m.goal ? `<p>${esc(m.goal)}</p>` : ""}
+        ${m.checkpoint ? `<span>${esc(m.checkpoint)}</span>` : ""}
+      </div>`;
+    })
+    .join("")}</div>`;
 }
 
 // ─── Log ───────────────────────────────────────────────────────────────────

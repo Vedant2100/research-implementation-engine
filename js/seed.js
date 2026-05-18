@@ -3,9 +3,45 @@
  * Merged once per browser via storage.js (SEED_VERSION).
  */
 
-export const SEED_VERSION = "starter_llm_rl_v1";
+export const SEED_VERSION = "novice_path_v1";
 
 export const SEED_PAPERS = [
+  {
+    title: "PyTorch: An Imperative Style, High-Performance Deep Learning Library",
+    authors: "Adam Paszke et al.",
+    year: 2019,
+    venue: "NeurIPS 2019",
+    area: "llm",
+    core_idea:
+      "PyTorch makes tensor programs feel like normal Python while still supporting automatic differentiation and accelerated kernels.",
+    why_important:
+      "Before reproducing transformer papers, a student needs to understand tensors, autograd, modules, and training loops.",
+    pytorch_hook: "torch.Tensor shapes + autograd + nn.Module + optimizer.step()",
+  },
+  {
+    title: "Attention Is All You Need",
+    authors: "Vaswani et al.",
+    year: 2017,
+    venue: "NeurIPS 2017",
+    area: "llm",
+    core_idea:
+      "Scaled dot-product attention lets tokens mix information by comparing queries and keys, then averaging values.",
+    why_important:
+      "Almost every modern LLM paper modifies attention, so a tiny attention layer is the safest bridge into transformers.",
+    pytorch_hook: "QK^T softmax V with explicit shape checks",
+  },
+  {
+    title: "Human-level control through deep reinforcement learning",
+    authors: "Mnih et al.",
+    year: 2015,
+    venue: "Nature 2015",
+    area: "rl",
+    core_idea:
+      "DQN learns action values from experience replay and a target network, turning reward feedback into supervised-style updates.",
+    why_important:
+      "It is a concrete way to learn states, actions, rewards, targets, and training instability before modern RLHF losses.",
+    pytorch_hook: "Q-network forward pass + Bellman target + MSE loss",
+  },
   {
     title: "RoFormer: Enhanced Transformer with Rotary Position Embedding",
     authors: "Jianlin Su et al.",
@@ -57,6 +93,220 @@ export const SEED_PAPERS = [
 ];
 
 export const SEED_ASSIGNMENTS = [
+  {
+    title: "PyTorch training loop from zero",
+    paper_ref: "PyTorch: An Imperative Style, High-Performance Deep Learning Library",
+    area: "llm",
+    difficulty: "starter",
+    estimated_hours: 5,
+    why_now:
+      "This teaches the mechanics every later research assignment assumes: tensors, gradients, modules, loss, and optimizer steps.",
+    learning_objective:
+      "Build and debug a complete PyTorch training loop on a tiny regression problem.",
+    context:
+      "The PyTorch paper is not an LLM paper; it is the toolchain underneath the LLM papers. Implementing a tiny end-to-end loop first makes later attention and RL assignments much less mysterious.",
+    prerequisite_concepts: ["Python functions/classes", "basic arrays", "high-school linear functions"],
+    concept_ladder: [
+      "Create tensors and inspect shapes",
+      "Track gradients with autograd",
+      "Wrap parameters in nn.Module",
+      "Train with loss.backward() and optimizer.step()",
+    ],
+    next_30_minutes:
+      "Create train.py, generate x/y tensors for y = 3x + noise, and print the shape of every tensor before training.",
+    setup:
+      "CPU is enough. No dataset download. Files: train.py, test_train_loop.py. Use 256 synthetic points and a one-layer nn.Linear model.",
+    tasks: [
+      "Task 1: Generate synthetic x/y tensors and split train/val.",
+      "Task 2: Build a one-layer nn.Module and verify output shape.",
+      "Task 3: Write the training loop with zero_grad, forward, loss, backward, step.",
+      "Task 4: Plot or print train/val loss every 20 steps.",
+    ],
+    milestones: [
+      {
+        title: "Shapes are boring",
+        goal: "Every tensor shape is printed and expected.",
+        checkpoint: "x is (256, 1), y is (256, 1), predictions are (batch, 1).",
+      },
+      {
+        title: "Gradients exist",
+        goal: "The model parameters receive non-null gradients.",
+        checkpoint: "After loss.backward(), weight.grad is finite.",
+      },
+      {
+        title: "Loss goes down",
+        goal: "The loop actually learns the line.",
+        checkpoint: "Validation MSE is lower than the initial MSE.",
+      },
+    ],
+    checkpoint_tests: [
+      "assert model(x[:4]).shape == (4, 1)",
+      "assert torch.isfinite(loss)",
+      "assert final_val_loss < initial_val_loss",
+    ],
+    hint_levels: [
+      "Start by making the data and model shapes match.",
+      "If loss does not move, print gradients before optimizer.step().",
+      "The loop order is zero_grad -> forward -> loss -> backward -> step.",
+    ],
+    stretch_goal: "Replace nn.Linear with a two-layer MLP and compare loss curves.",
+    key_pytorch_concepts: ["Tensor shapes", "autograd", "nn.Module", "optimizer.step"],
+    debug_hints:
+      "Most beginner bugs are shape bugs. Print x.shape, y.shape, pred.shape, and loss.item() before changing anything else.",
+    starter_code_hint:
+      "for step in range(200): zero gradients, run model, compute mse, backward, optimizer step",
+    verification: [
+      "pytest: model output shape and finite loss on a 4-row batch",
+      "smoke: 200 steps on CPU, loss finite and decreasing",
+      "eval: final validation MSE lower than initial validation MSE",
+      "done when: you can explain what backward() and step() each changed",
+    ],
+    code_build_guide:
+      "# Project: PyTorch training loop from zero\n# Paper: PyTorch: An Imperative Style, High-Performance Deep Learning Library\n# End goal: train a tiny model until validation loss goes down\n# Compute: CPU is enough\n#\n# STEP 0: Create files\n# - train.py\n# - test_train_loop.py\n#\n# STEP 1: Generate data\n# - Make x with shape (256, 1)\n# - Make y = 3 * x + small noise, also shape (256, 1)\n# - Split into train and validation tensors\n# - Checkpoint: print x.shape, y.shape, x_train.shape\n#\n# STEP 2: Build the model\n# - Create a small nn.Module named TinyRegressor\n# - It should contain one nn.Linear(1, 1)\n# - Its forward(x) returns predictions with shape (batch, 1)\n# - Checkpoint: assert model(x[:4]).shape == (4, 1)\n#\n# STEP 3: Write the training loop\n# - Use MSE loss\n# - Use Adam or SGD\n# - Each step: zero gradients, forward pass, compute loss, backward, optimizer step\n# - Checkpoint: after backward, confirm gradients are finite\n#\n# STEP 4: Track validation loss\n# - Save initial validation loss before training\n# - Print train and validation loss every 20 steps\n# - Checkpoint: final validation loss should be below initial validation loss\n#\n# HINT 1: If loss is not scalar, check reduction='mean'\n# HINT 2: If gradients are None, backward was not called on the loss from this model\n# HINT 3: The optimizer only changes parameters after optimizer.step()\n#\n# DONE: mark done when tests pass and you can explain zero_grad, backward, and step",
+  },
+  {
+    title: "Tiny attention by hand",
+    paper_ref: "Attention Is All You Need",
+    area: "llm",
+    difficulty: "starter",
+    estimated_hours: 6,
+    why_now:
+      "Attention is the smallest LLM concept worth learning after basic PyTorch mechanics.",
+    learning_objective:
+      "Implement scaled dot-product attention with explicit tensor shapes and a tiny causal mask.",
+    context:
+      "The original Transformer paper introduced attention as the core operation. You will build the smallest useful version so later RoPE, GQA, and KV-cache papers have a place to attach.",
+    prerequisite_concepts: ["Matrix multiplication", "softmax", "batch and sequence dimensions"],
+    concept_ladder: [
+      "Represent tokens as vectors",
+      "Project vectors into Q, K, and V",
+      "Compute attention scores with QK^T",
+      "Apply softmax and mix values",
+      "Add a causal mask so future tokens are hidden",
+    ],
+    next_30_minutes:
+      "Make random q, k, v tensors with shape (batch=2, time=4, dim=8), compute q @ k.transpose(-2, -1), and inspect the score shape.",
+    setup:
+      "CPU is enough. Synthetic tensors only. Files: attention.py and test_attention.py.",
+    tasks: [
+      "Task 1: Implement scaled dot-product attention as a function.",
+      "Task 2: Add a causal mask and prove future positions get zero probability.",
+      "Task 3: Wrap it in a tiny nn.Module with q/k/v projections.",
+      "Task 4: Train on a toy next-token copy task for a short smoke run.",
+    ],
+    milestones: [
+      {
+        title: "Scores have the right shape",
+        goal: "Understand why attention scores are (B, T, T).",
+        checkpoint: "scores.shape == (2, 4, 4).",
+      },
+      {
+        title: "Mask blocks the future",
+        goal: "Causal attention cannot look ahead.",
+        checkpoint: "attention weights above the diagonal are near zero.",
+      },
+      {
+        title: "Module trains",
+        goal: "The attention module participates in a loss and gradients flow.",
+        checkpoint: "Loss decreases on a tiny copy task.",
+      },
+    ],
+    checkpoint_tests: [
+      "assert scores.shape == (B, T, T)",
+      "assert weights[..., torch.triu(torch.ones(T, T), diagonal=1).bool()].max() < 1e-5",
+      "assert q_proj.weight.grad is not None after backward",
+    ],
+    hint_levels: [
+      "The transpose is only on the last two dims of k.",
+      "Scale scores by sqrt(head_dim) before softmax.",
+      "Use masked_fill(mask, -1e9) before softmax.",
+    ],
+    stretch_goal: "Split the dimension into multiple heads and concatenate them back together.",
+    key_pytorch_concepts: ["matmul", "softmax", "masking", "nn.Linear"],
+    debug_hints:
+      "If attention probabilities are NaN, inspect masked score values before softmax and ensure at least one unmasked position per row.",
+    starter_code_hint:
+      "scores = q @ k.transpose(-2, -1); scores = scores / sqrt(d); weights = softmax(scores, dim=-1); out = weights @ v",
+    verification: [
+      "pytest: score, weight, and output shapes match expectations",
+      "smoke: 100 tiny batches, no NaN, loss decreases",
+      "eval: causal mask test proves future positions are blocked",
+      "done when: you can explain why QK^T produces token-to-token weights",
+    ],
+    code_build_guide:
+      "# Project: Tiny attention by hand\n# Paper: Attention Is All You Need\n# End goal: implement scaled dot-product attention and a causal mask\n# Compute: CPU is enough\n#\n# STEP 0: Create files\n# - attention.py\n# - test_attention.py\n#\n# STEP 1: Start with random tensors\n# - q, k, v each have shape (B, T, D)\n# - Use B=2, T=4, D=8\n# - Checkpoint: scores from q @ k.transpose(-2, -1) have shape (B, T, T)\n#\n# STEP 2: Scale and softmax\n# - Divide scores by sqrt(D)\n# - Apply softmax over the last dimension\n# - Checkpoint: each row of weights sums to 1\n#\n# STEP 3: Add the causal mask\n# - Create an upper-triangular boolean mask for future tokens\n# - Fill future scores with a large negative number before softmax\n# - Checkpoint: weights above the diagonal are close to zero\n#\n# STEP 4: Wrap in a module\n# - Create TinyAttention with q_proj, k_proj, v_proj, out_proj\n# - Forward takes x with shape (B, T, D)\n# - Checkpoint: output has shape (B, T, D)\n#\n# HINT 1: transpose(-2, -1) swaps time and dim for k\n# HINT 2: softmax dim must be -1\n# HINT 3: masked_fill happens before softmax\n#\n# DONE: mark done when shape tests pass and a tiny backward pass gives gradients",
+  },
+  {
+    title: "Q-learning before RLHF",
+    paper_ref: "Human-level control through deep reinforcement learning",
+    area: "rl",
+    difficulty: "starter",
+    estimated_hours: 6,
+    why_now:
+      "Modern RLHF and GRPO are easier after you understand actions, rewards, value estimates, and bootstrapped targets.",
+    learning_objective:
+      "Train a tiny Q-network on a toy environment and understand the Bellman target.",
+    context:
+      "The DQN paper scaled Q-learning with neural networks. You will build a tiny version on a toy problem to learn the moving parts before touching language-model RL.",
+    prerequisite_concepts: ["Supervised loss", "argmax", "state/action/reward vocabulary"],
+    concept_ladder: [
+      "Represent state as a tensor",
+      "Predict one value per action",
+      "Choose actions with epsilon-greedy exploration",
+      "Train toward reward plus next-state value",
+    ],
+    next_30_minutes:
+      "Define a 1D gridworld with five positions, two actions, and reward +1 at the goal. Print one transition tuple.",
+    setup:
+      "CPU is enough. No gym dependency required. Files: env.py, qnet.py, train_dqn.py, test_q_learning.py.",
+    tasks: [
+      "Task 1: Build the tiny gridworld transition function.",
+      "Task 2: Implement QNet(state) -> values for two actions.",
+      "Task 3: Compute Bellman targets with a frozen no_grad next value.",
+      "Task 4: Train with epsilon-greedy exploration and plot episode reward.",
+    ],
+    milestones: [
+      {
+        title: "Environment is deterministic",
+        goal: "You can predict one transition by hand.",
+        checkpoint: "Moving right from position 3 reaches goal and gives reward 1.",
+      },
+      {
+        title: "Network predicts actions",
+        goal: "QNet returns one score per action.",
+        checkpoint: "q_values.shape == (batch, 2).",
+      },
+      {
+        title: "Policy improves",
+        goal: "The agent reaches the goal more often over time.",
+        checkpoint: "Average reward over last 20 episodes beats first 20.",
+      },
+    ],
+    checkpoint_tests: [
+      "assert qnet(states).shape == (batch, 2)",
+      "assert target tensor is detached from next_q gradients",
+      "assert last_reward_mean > first_reward_mean",
+    ],
+    hint_levels: [
+      "The target is reward + gamma * max_next_q for non-terminal states.",
+      "Use torch.no_grad() for the next-state value.",
+      "Your loss compares q_value_for_action against the target.",
+    ],
+    stretch_goal: "Add a replay buffer and compare learning stability with and without it.",
+    key_pytorch_concepts: ["gather", "no_grad", "MSE loss", "epsilon-greedy"],
+    debug_hints:
+      "If the policy never improves, first check that terminal transitions do not bootstrap from next_q.",
+    starter_code_hint:
+      "chosen_q = q_values.gather(1, actions[:, None]).squeeze(1); target = rewards + gamma * next_q.max(dim=1).values * not_done",
+    verification: [
+      "pytest: q-network output shape and target detach behavior",
+      "smoke: 200 episodes on CPU, no NaN",
+      "eval: average reward improves across training",
+      "done when: you can explain reward, target, and chosen_q in one paragraph",
+    ],
+    code_build_guide:
+      "# Project: Q-learning before RLHF\n# Paper: Human-level control through deep reinforcement learning\n# End goal: train a tiny Q-network in a toy gridworld\n# Compute: CPU is enough\n#\n# STEP 0: Create files\n# - env.py\n# - qnet.py\n# - train_dqn.py\n# - test_q_learning.py\n#\n# STEP 1: Build the environment\n# - State is an integer position from 0 to 4\n# - Actions are left=0 and right=1\n# - Reward is +1 when the agent reaches position 4\n# - Checkpoint: stepping right from position 3 ends episode with reward 1\n#\n# STEP 2: Build QNet\n# - Input can be one-hot state with shape (B, 5)\n# - Output has shape (B, 2), one value per action\n# - Checkpoint: qnet(states).shape == (B, 2)\n#\n# STEP 3: Compute Bellman targets\n# - chosen_q is the Q value for the action actually taken\n# - target is reward + gamma * max next_q for non-terminal states\n# - Use no_grad for next_q\n# - Checkpoint: target does not require grad\n#\n# STEP 4: Train\n# - Use epsilon-greedy exploration\n# - Store first 20 and last 20 episode rewards\n# - Checkpoint: later average reward is higher\n#\n# HINT 1: gather selects the Q value for the action column\n# HINT 2: terminal states should not include next_q\n# HINT 3: lower epsilon over time after the agent explores enough\n#\n# DONE: mark done when shape tests pass and reward improves",
+  },
   {
     title: "RoPE causal self-attention on a char-level LM",
     paper_ref: "RoFormer: Enhanced Transformer with Rotary Position Embedding",

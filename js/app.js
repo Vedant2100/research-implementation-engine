@@ -9,7 +9,16 @@
  * the appropriate ui.js render function.
  */
 
-import { loadDB, saveDB, clearDB, getApiKey, saveApiKey, consumeSeedNotice } from "./storage.js";
+import {
+  loadDB,
+  saveDB,
+  clearDB,
+  getApiKey,
+  saveApiKey,
+  consumeSeedNotice,
+  getStudentProfile,
+  saveStudentProfile,
+} from "./storage.js";
 import { runResearchAgent } from "./agent.js";
 import {
   renderStats,
@@ -32,6 +41,7 @@ import { getBuildGuide } from "./build-guides.js";
 // ─── State ─────────────────────────────────────────────────────────────────
 let db = loadDB();
 let currentFilter = "all";
+let studentProfile = getStudentProfile();
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
@@ -43,10 +53,11 @@ document.addEventListener("DOMContentLoaded", () => {
   wireEvents();
   refreshUI();
   prefillApiKey();
+  prefillStudentProfile();
   applyProviderHints();
   const seeded = consumeSeedNotice();
   if (seeded > 0) {
-    log(`Loaded ${seeded} starter items (transformers + RL, medium).`, "ok");
+    log(`Loaded ${seeded} starter learning items.`, "ok");
   }
   const provider = getProvider();
   log(`Provider: ${provider.label} · model ${provider.model}`, "search");
@@ -109,8 +120,15 @@ async function onRun() {
   setProgress(30);
 
   try {
-    const existingTitles = db.papers.map((p) => p.title);
-    const existingAssignmentTitles = db.assignments.map((a) => a.title);
+    const existingTitles = db.papers
+      .filter((p) => p.area === area.id)
+      .map((p) => p.title);
+    const existingAssignmentTitles = db.assignments
+      .filter((a) => a.area === area.id)
+      .map((a) => a.title);
+    const completedAssignmentTitles = db.assignments
+      .filter((a) => a.area === area.id && getStatus(a.title) === "done")
+      .map((a) => a.title);
     const { papers, assignments, searchCount } = await runResearchAgent(
       existingTitles,
       (msg, type) => log(msg, type),
@@ -118,6 +136,8 @@ async function onRun() {
         areaId: area.id,
         areaLabel: area.label,
         existingAssignmentTitles,
+        completedAssignmentTitles,
+        studentProfile,
       }
     );
 
@@ -183,13 +203,37 @@ function onSaveKey() {
     if (!ok) return;
   }
   saveApiKey(key);
+  studentProfile = readStudentProfileForm();
+  saveStudentProfile(studentProfile);
   toggleSettings(false);
-  log(`${provider.label} API key saved.`, "ok");
+  log(`${provider.label} settings saved.`, "ok");
 }
 
 function prefillApiKey() {
   const key = getApiKey();
   if (key) document.getElementById("api-key-input").value = key;
+}
+
+function prefillStudentProfile() {
+  studentProfile = getStudentProfile();
+  setFormValue("profile-level", studentProfile.level);
+  setFormValue("profile-compute", studentProfile.compute);
+  setFormValue("profile-hours", studentProfile.weeklyHours);
+  setFormValue("profile-style", studentProfile.style);
+}
+
+function readStudentProfileForm() {
+  return {
+    level: document.getElementById("profile-level")?.value || "beginner",
+    compute: document.getElementById("profile-compute")?.value || "cpu",
+    weeklyHours: document.getElementById("profile-hours")?.value || "4-6",
+    style: document.getElementById("profile-style")?.value || "guided",
+  };
+}
+
+function setFormValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value;
 }
 
 // ─── Export ────────────────────────────────────────────────────────────────
@@ -213,9 +257,39 @@ function buildMarkdownExport(db) {
     lines.push(`**Area:** ${a.area}  |  **Difficulty:** ${a.difficulty}  |  **~${a.estimated_hours}h**`);
     lines.push(`**Paper:** ${a.paper_ref}`, "");
     lines.push(a.context, "");
+    if (a.why_now) lines.push("**Why this next:** " + a.why_now, "");
+    if (a.next_30_minutes) lines.push("**First 30 minutes:** " + a.next_30_minutes, "");
+    if ((a.prerequisite_concepts || []).length) {
+      lines.push("**Prerequisites:**");
+      a.prerequisite_concepts.forEach((p) => lines.push("- " + p));
+      lines.push("");
+    }
+    if ((a.concept_ladder || []).length) {
+      lines.push("**Concept ladder:**");
+      a.concept_ladder.forEach((c) => lines.push("- " + c));
+      lines.push("");
+    }
     lines.push("**Objective:** " + a.learning_objective, "");
     lines.push("**Tasks:**");
     (a.tasks || []).forEach((t) => lines.push("- " + t));
+    if ((a.milestones || []).length) {
+      lines.push("", "**Milestones:**");
+      a.milestones.forEach((m) => {
+        if (typeof m === "string") {
+          lines.push("- " + m);
+        } else {
+          lines.push(`- ${m.title || "Milestone"}: ${m.goal || ""} ${m.checkpoint ? `(checkpoint: ${m.checkpoint})` : ""}`.trim());
+        }
+      });
+    }
+    if ((a.checkpoint_tests || []).length) {
+      lines.push("", "**Checkpoint tests:**");
+      a.checkpoint_tests.forEach((t) => lines.push("- " + t));
+    }
+    if ((a.hint_levels || []).length) {
+      lines.push("", "**Hint levels:**");
+      a.hint_levels.forEach((h) => lines.push("- " + h));
+    }
     if ((a.verification || []).length) {
       lines.push("", "**How to verify:**");
       a.verification.forEach((v) => lines.push("- " + v));

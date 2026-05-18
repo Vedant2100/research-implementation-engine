@@ -11,6 +11,14 @@ import { SEED_VERSION, SEED_PAPERS, SEED_ASSIGNMENTS } from "./seed.js";
 
 const KEY = CONFIG.STORAGE_KEY;
 const SEED_FLAG = `research_engine_seed_${SEED_VERSION}`;
+const PROFILE_KEY = "research_engine_student_profile";
+
+const DEFAULT_PROFILE = {
+  level: "beginner",
+  compute: "cpu",
+  weeklyHours: "4-6",
+  style: "guided",
+};
 
 export function loadDB() {
   try {
@@ -84,6 +92,18 @@ export function getApiKey() {
 
 export function saveApiKey(key) {
   localStorage.setItem("research_engine_api_key", key);
+}
+
+export function getStudentProfile() {
+  try {
+    return { ...DEFAULT_PROFILE, ...JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}") };
+  } catch {
+    return { ...DEFAULT_PROFILE };
+  }
+}
+
+export function saveStudentProfile(profile) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...DEFAULT_PROFILE, ...profile }));
 }
 
 function freshDB() {
