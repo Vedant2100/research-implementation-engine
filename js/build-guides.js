@@ -1,5 +1,5 @@
 /**
- * Default build guides (comment-only) for starter assignments.
+ * Default build guides for starter assignments.
  * Shown in the Monaco editor when no saved code exists.
  */
 

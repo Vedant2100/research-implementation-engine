@@ -35,7 +35,8 @@ Each run the student picks exactly ONE focus area. You must:
 2. Return EXACTLY 1 assignment.
 3. Size the assignment to the student's profile and completed work.
 4. Teach a concept ladder before expecting paper reproduction.
-5. Include code_build_guide: comment-only build instructions, no skeleton code.
+5. Include code_build_guide: one runnable Python file with TODO comment zones
+   plus executable tests/checks, but no completed solution.
 6. Return ONLY valid JSON.
 
 The student may be new to PyTorch. Do not assume they can jump straight into a
@@ -85,31 +86,40 @@ For beginners:
 - Teach shapes, gradients, loss curves, and evaluation before large papers.
 - Use encouraging but precise language. Do not oversell or hide hard parts.
 
-HOW STUDENTS VERIFY IMPLEMENTATIONS
-The app does not run or grade code. Every assignment must define:
-1. Checkpoint tests: tiny assertions after each milestone.
-2. Smoke run: a cheap run that finishes quickly.
-3. Eval: the metric or plot that shows the idea works.
-4. Done condition: what must be true before marking the card done.
+HOW STUDENTS CHECK IMPLEMENTATIONS
+The app does not run or grade code. Do not create separate "tests" or
+"verification" sections in the assignment card. Instead, every module/step in
+code_build_guide must end with short comment lines telling the student what to
+check immediately after implementing that piece.
 
-CODE BUILD GUIDE
-Every assignment MUST include "code_build_guide": a Python file string containing
-ONLY # comment lines. The student writes real code elsewhere.
+CODE FILE
+Every assignment MUST include "code_build_guide": a single Python file string.
+This is the file the student edits and runs once with python assignment.py.
 
-Do NOT include imports, class bodies, function bodies, or NotImplementedError.
+Do NOT include completed solution implementations. Use helpful TODO placeholder
+raises only where needed to keep the file syntactically runnable before the
+student fills it in.
 
 DO include:
 - Header: project name, paper, end goal, estimated time, compute assumptions.
 - STEP 0: single-file layout and commands to run.
 - Use exactly ONE Python file for the whole assignment, usually "assignment.py".
-- If tests are needed, put them as functions/assertions at the bottom of the same file.
+- Minimal imports needed by the tests/checks.
+- Clearly marked TODO comment zones where the student writes implementation.
+- Executable test/check functions after each module/function/step they validate.
+- A main() runner at the bottom that calls all tests/checks in order and prints
+  progress.
 - Do not ask the student to create train.py, eval.py, tests/, packages, or multiple modules.
-- STEP 1..N: one section per milestone, including names, tensor shapes, and
-  exact checkpoint tests.
-- HINT LEVELS: tiny hint, stronger hint, solution direction, still as comments.
-- DEBUG, VERIFY, STARTER PATTERN, and STRETCH sections belong inside this
-  comment-only guide, not as separate card fields.
-- DONE: the checks that must pass before marking the assignment done.
+- STEP 1..N: one section per module/function/milestone, including names and
+  tensor shapes.
+- After EACH module/function/step, include real Python check code in this style:
+  def test_name():
+      # CHECK: what this validates
+      # EXPECT: expected shape/value/trend
+      assert ...
+- Keep DEBUG, VERIFY, STARTER PATTERN, and STRETCH guidance inside the
+  nearby comments/test failure messages, not as separate JSON fields or card sections.
+- DONE: main() should print a clear final success message when everything passes.
 
 OUTPUT FORMAT - STRICT JSON ONLY
 Return exactly this structure. No markdown, no preamble, nothing else:
@@ -157,7 +167,7 @@ Return exactly this structure. No markdown, no preamble, nothing else:
         }
       ],
       "key_pytorch_concepts": ["concept1", "concept2", "concept3"],
-      "code_build_guide": "Python source string containing ONLY # comment lines."
+      "code_build_guide": "Single Python file string: TODO comments plus executable test/check code, no completed solution."
     }
   ]
 }

@@ -3,7 +3,7 @@
  * Merged once per browser via storage.js (SEED_VERSION).
  */
 
-export const SEED_VERSION = "tiny_attention_only_v3";
+export const SEED_VERSION = "tiny_attention_runnable_tests_v4";
 
 export const SEED_PAPERS = [
   {
@@ -187,7 +187,7 @@ export const SEED_ASSIGNMENTS = [
     next_30_minutes:
       "Make random q, k, v tensors with shape (batch=2, time=4, dim=8), compute q @ k.transpose(-2, -1), and inspect the score shape.",
     setup:
-      "CPU is enough. Synthetic tensors only. Use one file: assignment.py. Put attention code, tiny training code, and inline assertions in that same file.",
+      "CPU is enough. Synthetic tensors only. Use one file: assignment.py. Fill the TODO zones, then run python assignment.py once to execute the built-in tests.",
     tasks: [
       "Task 1: Implement scaled dot-product attention as a function.",
       "Task 2: Add a causal mask and prove future positions get zero probability.",
@@ -213,7 +213,7 @@ export const SEED_ASSIGNMENTS = [
     ],
     key_pytorch_concepts: ["matmul", "softmax", "masking", "nn.Linear"],
     code_build_guide:
-      "# Project: Tiny attention by hand\n# Paper: Attention Is All You Need\n# End goal: implement scaled dot-product attention and a causal mask\n# Compute: CPU is enough\n# File: assignment.py only\n#\n# STEP 0: Use one file\n# - Put helper functions, TinyAttention, toy data, and inline asserts in this one file\n# - When ready, run: python assignment.py\n# - Do not create attention.py, test_attention.py, packages, or extra modules\n#\n# STEP 1: Start with random tensors\n# - q, k, v each have shape (B, T, D)\n# - Use B=2, T=4, D=8\n# - Checkpoint: scores from q @ k.transpose(-2, -1) have shape (B, T, T)\n#\n# STEP 2: Scale and softmax\n# - Divide scores by sqrt(D)\n# - Apply softmax over the last dimension\n# - Checkpoint: each row of weights sums to 1\n#\n# STEP 3: Add the causal mask\n# - Create an upper-triangular boolean mask for future tokens\n# - Fill future scores with a large negative number before softmax\n# - Checkpoint: weights above the diagonal are close to zero\n#\n# STEP 4: Wrap in a module\n# - Create TinyAttention with q_proj, k_proj, v_proj, out_proj in this same file\n# - Forward takes x with shape (B, T, D)\n# - Checkpoint: output has shape (B, T, D)\n#\n# STEP 5: Add inline checks at the bottom\n# - Use assert statements instead of a separate test file\n# - Include one tiny backward pass to confirm gradients exist\n#\n# HINT 1: transpose(-2, -1) swaps time and dim for k\n# HINT 2: softmax dim must be -1\n# HINT 3: masked_fill happens before softmax\n#\n# DONE: mark done when inline checks pass and a tiny backward pass gives gradients",
+      "# Project: Tiny attention by hand\n# Paper: Attention Is All You Need\n# Goal: fill the TODO zones, then run this file once: python assignment.py\n# Compute: CPU is enough\n#\n# Rule: keep this as ONE file. Do not create attention.py, tests/, or extra modules.\n\nimport math\nimport torch\nimport torch.nn as nn\n\n\ndef scaled_dot_product_attention(q, k, v, causal=False):\n    # TODO STEP 1: implement scaled dot-product attention.\n    # Inputs:\n    # - q, k, v each have shape (B, T, D)\n    # Return:\n    # - out with shape (B, T, D)\n    # - weights with shape (B, T, T)\n    # Hints:\n    # - scores = q @ k.transpose(-2, -1)\n    # - scale by math.sqrt(D)\n    # - if causal=True, mask future token positions before softmax\n    # - weights = softmax(scores, dim=-1)\n    # - out = weights @ v\n\n\ndef test_scaled_attention_shapes():\n    # CHECK: the attention function returns the shapes the paper needs.\n    # EXPECT: out is (B, T, D), weights is (B, T, T), and each row sums to 1.\n    B, T, D = 2, 4, 8\n    q = torch.randn(B, T, D)\n    k = torch.randn(B, T, D)\n    v = torch.randn(B, T, D)\n    out, weights = scaled_dot_product_attention(q, k, v, causal=False)\n    assert out.shape == (B, T, D), f\"out shape was {out.shape}\"\n    assert weights.shape == (B, T, T), f\"weights shape was {weights.shape}\"\n    row_sums = weights.sum(dim=-1)\n    assert torch.allclose(row_sums, torch.ones_like(row_sums), atol=1e-5), row_sums\n\n\ndef test_causal_mask_blocks_future():\n    # CHECK: causal=True prevents a token from attending to future tokens.\n    # EXPECT: all weights above the diagonal are near zero.\n    B, T, D = 2, 4, 8\n    q = torch.randn(B, T, D)\n    k = torch.randn(B, T, D)\n    v = torch.randn(B, T, D)\n    _, weights = scaled_dot_product_attention(q, k, v, causal=True)\n    future_mask = torch.triu(torch.ones(T, T, dtype=torch.bool), diagonal=1)\n    future_weights = weights[:, future_mask]\n    assert future_weights.numel() > 0\n    assert future_weights.abs().max().item() < 1e-5, future_weights\n\n\nclass TinyAttention(nn.Module):\n    # TODO STEP 2: wrap your attention function in an nn.Module.\n    # Requirements:\n    # - __init__(self, d_model): create q_proj, k_proj, v_proj, out_proj\n    # - forward(self, x, causal=True): project x into q/k/v, call your function,\n    #   then pass out through out_proj\n    # - input x shape: (B, T, D)\n    # - output shape: (B, T, D)\n\n\ndef test_tiny_attention_backward():\n    # CHECK: TinyAttention participates in autograd.\n    # EXPECT: output has the same shape as input, loss is finite, and q_proj has gradients.\n    B, T, D = 2, 4, 8\n    model = TinyAttention(d_model=D)\n    x = torch.randn(B, T, D)\n    out = model(x, causal=True)\n    assert out.shape == x.shape, f\"output shape was {out.shape}\"\n    loss = out.pow(2).mean()\n    assert torch.isfinite(loss), loss\n    loss.backward()\n    assert model.q_proj.weight.grad is not None, \"q_proj did not receive gradients\"\n    assert torch.isfinite(model.q_proj.weight.grad).all(), \"q_proj gradients contain NaN/inf\"\n\n\ndef run_all_tests():\n    print(\"Running tiny attention checks...\")\n    test_scaled_attention_shapes()\n    print(\"1/3 scaled attention shapes passed\")\n    test_causal_mask_blocks_future()\n    print(\"2/3 causal mask passed\")\n    test_tiny_attention_backward()\n    print(\"3/3 backward pass passed\")\n    print(\"All checks passed. You can mark this assignment done.\")\n\n\nif __name__ == \"__main__\":\n    run_all_tests()\n",
   },
   {
     title: "Q-learning before RLHF",
@@ -419,4 +419,19 @@ export const SEED_ASSIGNMENTS = [
       "done when: val pair-accuracy beats init checkpoint",
     ],
   },
-].filter((assignment) => assignment.title === "Tiny attention by hand");
+].filter((assignment) => assignment.title === "Tiny attention by hand").map(withRunnableTodoPlaceholders);
+
+function withRunnableTodoPlaceholders(assignment) {
+  return {
+    ...assignment,
+    code_build_guide: assignment.code_build_guide
+      .replace(
+        "\n\n\ndef test_scaled_attention_shapes",
+        "\n    raise AssertionError(\"TODO: implement scaled_dot_product_attention, then rerun this script\")\n\n\ndef test_scaled_attention_shapes"
+      )
+      .replace(
+        "class TinyAttention(nn.Module):\n    # TODO STEP 2: wrap your attention function in an nn.Module.\n    # Requirements:\n    # - __init__(self, d_model): create q_proj, k_proj, v_proj, out_proj\n    # - forward(self, x, causal=True): project x into q/k/v, call your function,\n    #   then pass out through out_proj\n    # - input x shape: (B, T, D)\n    # - output shape: (B, T, D)\n\n\ndef test_tiny_attention_backward",
+        "class TinyAttention(nn.Module):\n    # TODO STEP 2: wrap your attention function in an nn.Module.\n    # Requirements:\n    # - __init__(self, d_model): create q_proj, k_proj, v_proj, out_proj\n    # - forward(self, x, causal=True): project x into q/k/v, call your function,\n    #   then pass out through out_proj\n    # - input x shape: (B, T, D)\n    # - output shape: (B, T, D)\n    def __init__(self, d_model):\n        super().__init__()\n        raise AssertionError(\"TODO: create q_proj, k_proj, v_proj, and out_proj\")\n\n    def forward(self, x, causal=True):\n        raise AssertionError(\"TODO: implement TinyAttention.forward\")\n\n\ndef test_tiny_attention_backward"
+      ),
+  };
+}

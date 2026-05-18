@@ -253,7 +253,7 @@ function parseResponse(rawText, searchCount, onLog) {
 
   const guide = assignments[0]?.code_build_guide || assignments[0]?.code_harness;
   if (guide && String(guide).trim().length > 100) {
-    onLog("Build guide (comments) included — open Code on the card", "ok");
+    onLog("Runnable assignment file included — open Code on the card", "ok");
   } else if (assignments.length) {
     onLog("Warning: assignment missing code_build_guide", "err");
   }
@@ -323,7 +323,8 @@ Otherwise skip it and answer directly — tool calls cost latency.
 
 Design exactly ONE end-to-end PyTorch assignment that maximizes teaching value for
 the student's current stage. Show which paper you picked and why over runner-ups.
-Include code_build_guide: comment-only steps (# lines), no class skeletons.
+Include code_build_guide: one runnable Python file with TODO comment zones and
+executable checks/tests. Do not provide completed solution implementations.
 
 ${existingPapers}
 
