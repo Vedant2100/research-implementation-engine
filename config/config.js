@@ -61,9 +61,9 @@ export const CONFIG = {
 
   MAX_TOKENS: 16000,
 
-  // arXiv tool: pre-fetches paper abstracts for the chosen area before calling the LLM.
-  // Free, no API key, much better than relying on the model's training cutoff for
-  // 2025-2026 papers. Adds ~1-2s per run.
+  // arXiv is now exposed as a tool the model can CALL when it decides it needs
+  // recent papers (e.g. after the user has done several assignments in an area).
+  // Set false to disable the tool entirely (forces training-knowledge only).
   ENABLE_ARXIV: true,
 
   ENABLE_WEB_SEARCH: false,

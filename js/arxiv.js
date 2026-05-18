@@ -20,10 +20,13 @@ const AREA_QUERIES = {
 
 export async function fetchArxivPapers(areaId, max = 8) {
   const query = AREA_QUERIES[areaId] || AREA_QUERIES.llm;
+  return searchArxivByQuery(query, max);
+}
+
+export async function searchArxivByQuery(query, max = 6) {
   const url =
     `${ARXIV_BASE}?search_query=${encodeURIComponent(query)}` +
     `&start=0&max_results=${max}&sortBy=submittedDate&sortOrder=descending`;
-
   const res = await fetch(url);
   if (!res.ok) throw new Error(`arXiv ${res.status}`);
   const xml = await res.text();

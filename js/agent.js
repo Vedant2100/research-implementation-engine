@@ -2,15 +2,49 @@
  * AGENT MODULE
  * ────────────
  * Sends one research request to the configured LLM provider.
- * Supports two response formats:
- *   - openai     → POST {baseUrl}/chat/completions (NVIDIA NIM, DeepSeek, OpenAI, etc.)
- *   - anthropic  → POST {baseUrl}/messages  (Claude)
+ *   - openai     → POST {baseUrl}/chat/completions  (NVIDIA NIM, DeepSeek, OpenAI, etc.)
+ *   - anthropic  → POST {baseUrl}/messages         (Claude)
+ *
+ * Implements an OpenAI-style tool-use loop so the model can decide
+ * to call `search_arxiv` for fresh papers when prior knowledge is
+ * insufficient (e.g. after the user has done several assignments).
  */
 
 import { CONFIG, getProvider } from "../config/config.js";
 import { SYSTEM_PROMPT } from "./prompt.js";
 import { getApiKey } from "./storage.js";
-import { fetchArxivPapers, formatArxivForPrompt } from "./arxiv.js";
+import { searchArxivByQuery, formatArxivForPrompt } from "./arxiv.js";
+
+const ARXIV_TOOL = {
+  type: "function",
+  function: {
+    name: "search_arxiv",
+    description:
+      "Search arXiv for recent papers. Use this when you need NEW papers beyond canonical " +
+      "ones in your training (e.g. when the user has already covered several assignments " +
+      "in this area, or when you need papers from the last 6 months).",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "arXiv query, e.g. all:\"flash attention\" OR all:\"MoE routing\". Be specific.",
+        },
+        max_results: {
+          type: "integer",
+          description: "1-10. Default 6.",
+          minimum: 1,
+          maximum: 10,
+        },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+const TOOLS = [ARXIV_TOOL];
+const MAX_TOOL_HOPS = 3;
 
 export async function runResearchAgent(
   existingTitles = [],
@@ -25,49 +59,27 @@ export async function runResearchAgent(
   if (!areaId || !areaLabel) throw new Error("Pick a research area before running.");
 
   const provider = getProvider();
-
-  let arxivBlock = "";
-  if (CONFIG.ENABLE_ARXIV) {
-    try {
-      onLog(`Fetching recent arXiv papers for ${areaLabel}...`, "search");
-      const papers = await fetchArxivPapers(areaId, 8);
-      arxivBlock = formatArxivForPrompt(papers);
-      onLog(`Got ${papers.length} arXiv abstracts (passed to model)`, "ok");
-    } catch (e) {
-      onLog(`arXiv fetch failed: ${e.message} (continuing without it)`, "err");
-    }
-  }
-
   const userMessage = buildUserMessage(
     existingTitles,
     areaId,
     areaLabel,
-    existingAssignmentTitles,
-    arxivBlock
+    existingAssignmentTitles
   );
 
-  onLog(`Researching: ${areaLabel} via ${provider.label} (${provider.model})...`, "search");
+  onLog(
+    `Researching ${areaLabel} via ${provider.label}. Model decides if it needs arXiv search.`,
+    "search"
+  );
 
   const { rawText, searchCount } =
     provider.format === "anthropic"
       ? await callAnthropic(provider, apiKey, userMessage, onLog)
-      : await callOpenAICompatible(provider, apiKey, userMessage, onLog);
+      : await callOpenAICompatibleWithTools(provider, apiKey, userMessage, onLog);
 
   return parseResponse(rawText, searchCount, onLog);
 }
 
-async function callOpenAICompatible(provider, apiKey, userMessage, onLog) {
-  const body = {
-    model: provider.model,
-    max_tokens: CONFIG.MAX_TOKENS,
-    temperature: 0.6,
-    top_p: 0.95,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userMessage },
-    ],
-  };
-
+async function callOpenAICompatibleWithTools(provider, apiKey, userMessage, onLog) {
   const url = CONFIG.PROXY_URL
     ? `${CONFIG.PROXY_URL.replace(/\/$/, "")}/chat/completions`
     : `${provider.baseUrl}/chat/completions`;
@@ -77,32 +89,89 @@ async function callOpenAICompatible(provider, apiKey, userMessage, onLog) {
   };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
+  const messages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "user", content: userMessage },
+  ];
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    const msg = err?.error?.message || err?.detail || err?.message || `API error ${response.status}`;
-    if (response.status === 0 || response.status === 401) {
-      throw new Error(`${provider.label}: ${msg}. Check API key.`);
+  let toolCallsUsed = 0;
+  let lastUsage = null;
+
+  for (let hop = 0; hop <= MAX_TOOL_HOPS; hop++) {
+    const body = {
+      model: provider.model,
+      max_tokens: CONFIG.MAX_TOKENS,
+      temperature: 0.5,
+      top_p: 0.95,
+      messages,
+      tools: TOOLS,
+      tool_choice: hop >= MAX_TOOL_HOPS ? "none" : "auto",
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const msg = err?.error?.message || err?.detail || err?.message || `API error ${response.status}`;
+      throw new Error(`${provider.label}: ${msg}`);
     }
-    throw new Error(`${provider.label}: ${msg}`);
+
+    const data = await response.json();
+    lastUsage = data.usage || lastUsage;
+    const choice = data.choices?.[0]?.message;
+    if (!choice) throw new Error("No message returned from provider.");
+
+    const toolCalls = choice.tool_calls || [];
+
+    if (toolCalls.length === 0) {
+      if (lastUsage?.total_tokens) onLog(`Tokens used: ${lastUsage.total_tokens}`, "ok");
+      return { rawText: choice.content || "", searchCount: toolCallsUsed };
+    }
+
+    messages.push({
+      role: "assistant",
+      content: choice.content || "",
+      tool_calls: toolCalls,
+    });
+
+    for (const call of toolCalls) {
+      const name = call.function?.name;
+      let args = {};
+      try {
+        args = JSON.parse(call.function?.arguments || "{}");
+      } catch {}
+
+      let result = "";
+      if (name === "search_arxiv") {
+        toolCallsUsed++;
+        const q = args.query || "";
+        const max = Math.min(10, Math.max(1, args.max_results || 6));
+        onLog(`Agent decided to search arXiv: "${q.slice(0, 80)}"`, "search");
+        try {
+          const papers = await searchArxivByQuery(q, max);
+          result = formatArxivForPrompt(papers);
+          onLog(`arXiv returned ${papers.length} papers`, "ok");
+        } catch (e) {
+          result = `arXiv error: ${e.message}`;
+          onLog(`arXiv error: ${e.message}`, "err");
+        }
+      } else {
+        result = `Unknown tool: ${name}`;
+      }
+
+      messages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: result.slice(0, 6000),
+      });
+    }
   }
 
-  const data = await response.json();
-  const choice = data.choices?.[0]?.message;
-  if (!choice) throw new Error("No message returned from provider.");
-
-  const thinking = choice.reasoning_content || "";
-  const text = choice.content || "";
-
-  if (thinking) onLog(`Model thought for ~${thinking.length} chars`, "search");
-  if (data.usage?.total_tokens) onLog(`Tokens used: ${data.usage.total_tokens}`, "ok");
-
-  return { rawText: text, searchCount: 0 };
+  throw new Error("Tool-call loop exceeded MAX_TOOL_HOPS without final answer.");
 }
 
 async function callAnthropic(provider, apiKey, userMessage, onLog) {
@@ -185,7 +254,15 @@ function parseResponse(rawText, searchCount, onLog) {
   return { papers, assignments, searchCount };
 }
 
-function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles, arxivBlock) {
+function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles) {
+  const inAreaCount = existingAssignmentTitles.length;
+  const progressNote =
+    inAreaCount === 0
+      ? "STAGE: foundational. The user has done 0 assignments in this area. Pick a canonical, well-understood paper from your training knowledge. No need to search arXiv."
+      : inAreaCount < 3
+      ? `STAGE: building (done ${inAreaCount}). You MAY call search_arxiv if you want to push beyond basics, but a strong known paper is also fine.`
+      : `STAGE: advanced (done ${inAreaCount} in this area). You SHOULD call search_arxiv at least once to find a recent/novel paper. Avoid repeating concepts already covered.`;
+
   const existingPapers =
     existingTitles.length > 0
       ? `Papers already in database — do NOT repeat:\n${existingTitles.join("\n")}`
@@ -193,27 +270,28 @@ function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentT
 
   const existingAssigns =
     existingAssignmentTitles.length > 0
-      ? `Assignments already built — do NOT repeat these topics/titles:\n${existingAssignmentTitles.join("\n")}`
+      ? `Assignments already built — do NOT repeat these topics:\n${existingAssignmentTitles.join("\n")}`
       : "No prior assignments in database.";
-
-  const arxivSection = arxivBlock
-    ? `\nRECENT ARXIV PAPERS FOR THIS AREA (fresh search, prefer these for your selection):\n${arxivBlock}\n`
-    : "";
 
   return `
 THIS RUN — FOCUS AREA: ${areaLabel}
 area id (use in JSON "area" field): ${areaId}
 
-Pick the best papers from the arXiv list below (or use one you know is canonical for this
-area if the list misses it). Design exactly ONE end-to-end PyTorch assignment that
-teaches the maximum depth — not a survey. Include code_build_guide: comment-only
-steps (# lines), no class skeletons or NotImplementedError stubs.
-${arxivSection}
+${progressNote}
+
+You have one tool available: search_arxiv(query, max_results). Use it when knowledge
+of recent (post-2024) papers in this area would noticeably improve the assignment.
+Otherwise skip it and answer directly — tool calls cost latency.
+
+Design exactly ONE end-to-end PyTorch assignment that maximizes teaching value at
+medium difficulty. Show which paper you picked and briefly why over runner-ups.
+Include code_build_guide: comment-only steps (# lines), no class skeletons.
+
 ${existingPapers}
 
 ${existingAssigns}
 
 Output: 4-6 papers (all area="${areaId}"), exactly 1 assignment (area="${areaId}").
-Return ONLY valid JSON. No markdown fences. No preamble. No <think> tags in output.
+Return ONLY valid JSON. No markdown fences. No preamble. No <think> tags.
   `.trim();
 }
