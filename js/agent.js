@@ -280,10 +280,10 @@ function buildUserMessage(
   };
   const progressNote =
     completedCount === 0
-      ? "STAGE: foundations. The student has completed 0 assignments in this area. Teach prerequisites first. Prefer a canonical paper and a tiny reproducible project. Do not search unless the area truly has no canonical beginner anchor."
+      ? "STAGE: first full pipeline. The student has completed 0 assignments in this area. Pick a canonical paper from this area and have them reproduce its FULL architecture plus the training/evaluation pipeline at a tiny config that runs on CPU. Do not assign a single helper function. Do not search unless the area lacks a canonical full-architecture anchor."
       : completedCount < 3
-      ? `STAGE: scaffolded builder. The student has completed ${completedCount} assignment(s) in this area. Introduce one paper idea at a time, with clear checkpoints. Search is optional.`
-      : `STAGE: paper reproduction. The student has completed ${completedCount} assignment(s) in this area. You SHOULD call search_arxiv at least once to find a recent/novel paper and avoid covered concepts.`;
+      ? `STAGE: next full pipeline. The student has completed ${completedCount} assignment(s) in this area. Pick a different paper and reproduce its full architecture + end-to-end pipeline. Search is optional.`
+      : `STAGE: paper reproduction. The student has completed ${completedCount} assignment(s) in this area. You SHOULD call search_arxiv at least once to find a recent paper whose full architecture or full pipeline the student has not yet built.`;
 
   const existingPapers =
     existingTitles.length > 0
@@ -312,10 +312,14 @@ STUDENT PROFILE:
 - weekly hours: ${profile.weeklyHours}
 - teaching style: ${profile.style}
 
-Treat this as a naive student unless profile says otherwise. If profile.level is beginner,
-make the first checkpoint doable in 30 minutes, include prerequisite concepts, and avoid
-large-scale training. Use tiny synthetic or toy datasets when needed, but still connect the
-work to a real paper.
+The student explicitly wants BIG PIPELINES and FULL ARCHITECTURES, not small
+helper functions. Every assignment must implement a paper's full architecture
+(multiple cooperating nn.Module classes) plus the surrounding training and
+evaluation pipeline. If the student is a beginner, shrink the config (image
+size, depth, dataset) — do NOT shrink the scope to a single function.
+
+Use tiny synthetic or toy datasets to keep CPU-friendly, but the architecture
+and pipeline must be the real one from the paper.
 
 You have one tool available: search_arxiv(query, max_results). Use it when knowledge
 of recent (post-2024) papers in this area would noticeably improve the assignment.
@@ -323,8 +327,9 @@ Otherwise skip it and answer directly — tool calls cost latency.
 
 Design exactly ONE end-to-end PyTorch assignment that maximizes teaching value for
 the student's current stage. Show which paper you picked and why over runner-ups.
-Include code_build_guide: one runnable Python file with TODO comment zones and
-executable checks/tests. Do not provide completed solution implementations.
+Include code_build_guide: one runnable Python file with TODO raise zones for every
+class and pipeline function, and executable integration tests at the bottom that
+validate the full pipeline. Do not provide completed solution implementations.
 
 ${existingPapers}
 

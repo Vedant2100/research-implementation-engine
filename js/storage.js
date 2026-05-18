@@ -14,9 +14,11 @@ const SEED_FLAG = `research_engine_seed_${SEED_VERSION}`;
 const PROFILE_KEY = "research_engine_student_profile";
 const CODE_KEY = "research_engine_code";
 const STATUS_KEY = "research_engine_status";
-const STARTER_PRUNE_FLAG = "research_engine_pruned_starters_tiny_attention_tests_bottom_v3";
+const STARTER_PRUNE_FLAG = "research_engine_pruned_starters_vit_full_pipeline_v1";
 
-const KEEP_STARTER_TITLE = "Tiny attention by hand";
+const KEEP_STARTER_TITLE = "Vision Transformer (ViT) from scratch";
+const KEEP_PAPER_TITLE =
+  "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale";
 const OLD_STARTER_TITLES = [
   "PyTorch training loop from zero",
   "Q-learning before RLHF",
@@ -24,6 +26,7 @@ const OLD_STARTER_TITLES = [
   "Grouped-query attention block (GQA) from scratch",
   "GRPO on a toy math-word policy (no critic)",
   "DPO alignment on pairwise preferences (tiny LM)",
+  "Tiny attention by hand",
 ];
 const OLD_STARTER_PAPERS = [
   "PyTorch: An Imperative Style, High-Performance Deep Learning Library",
@@ -32,6 +35,7 @@ const OLD_STARTER_PAPERS = [
   "GQA: Training Generalized Multi-Query Attention Models from Multi-Head Checkpoints",
   "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models",
   "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+  "Attention Is All You Need",
 ];
 
 const DEFAULT_PROFILE = {
@@ -111,7 +115,7 @@ function pruneOldStarterContent(db) {
 }
 
 function refreshKeptStarter(db) {
-  const seedPaper = SEED_PAPERS.find((p) => p.title === "Attention Is All You Need");
+  const seedPaper = SEED_PAPERS.find((p) => p.title === KEEP_PAPER_TITLE);
   const seedAssignment = SEED_ASSIGNMENTS.find((a) => a.title === KEEP_STARTER_TITLE);
   if (seedPaper) {
     const idx = db.papers.findIndex((p) => p.title === seedPaper.title);

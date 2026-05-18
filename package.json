@@ -8,7 +8,8 @@
     "dev:proxy": "node scripts/dev-proxy.mjs",
     "dev": "concurrently -k -n web,proxy -c blue,magenta \"npm:dev:web\" \"npm:dev:proxy\"",
     "start": "npm run dev",
-    "open": "npx serve . --cors -p 3000 --open"
+    "open": "npx serve . --cors -p 3000 --open",
+    "gen-seed": "node scripts/gen-seed.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
