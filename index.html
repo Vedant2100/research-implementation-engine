@@ -8,107 +8,139 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
 </head>
 <body>
+
+  <!-- Settings overlay (hidden by default; toggled by JS) -->
+  <div class="settings-backdrop" aria-hidden="true"></div>
+  <div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-head">
+      <h2 id="settings-title"><i class="ti ti-settings"></i> Settings</h2>
+      <button class="icon-btn" id="settings-close" aria-label="Close settings"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="settings-row">
+      <label for="api-key-input">API key</label>
+      <input type="password" id="api-key-input" placeholder="nvapi-..." autocomplete="off" />
+    </div>
+    <p class="settings-hint" id="settings-hint">
+      Get your key from the configured provider. Stored in localStorage only.
+    </p>
+    <div class="settings-footer">
+      <button class="btn-ghost" id="settings-close-alt">Cancel</button>
+      <button class="btn-primary" id="save-key-btn"><i class="ti ti-device-floppy"></i> Save key</button>
+    </div>
+  </div>
+
   <div class="app-shell">
 
     <!-- Header -->
     <header class="app-header">
-      <h1><i class="ti ti-telescope" style="vertical-align:-3px; margin-right:8px;"></i>Research → code engine</h1>
-      <p>Pick an area · deep research · one assignment + step-by-step build guide per run</p>
+      <div class="brand">
+        <span class="brand-mark"><i class="ti ti-telescope"></i></span>
+        <div class="brand-text">
+          <h1>Research Engine</h1>
+          <p>Agentic paper search · one deep PyTorch assignment per run</p>
+        </div>
+      </div>
+      <button class="icon-btn header-settings" id="settings-btn" aria-label="Open settings" title="Settings">
+        <i class="ti ti-settings"></i>
+      </button>
     </header>
 
-    <!-- Area badges -->
-    <div class="area-badges" id="area-badges"></div>
+    <!-- Legacy element kept for JS compatibility; visually hidden. -->
+    <div class="area-badges" id="area-badges" hidden></div>
 
-    <!-- Settings panel (hidden by default) -->
-    <div class="settings-panel" id="settings-panel">
-      <h2>Settings</h2>
-      <div class="settings-row">
-        <label for="api-key-input">API key</label>
-        <input type="password" id="api-key-input" placeholder="nvapi-..." autocomplete="off" />
+    <!-- Action bar -->
+    <section class="action-bar">
+      <div class="action-bar-left">
+        <label class="select-wrap" for="run-area-select">
+          <span class="select-label">Area</span>
+          <select id="run-area-select" class="run-area-select" aria-label="Research area for this run">
+            <option value="">Pick an area…</option>
+          </select>
+        </label>
+        <button class="btn-primary btn-run" id="run-btn">
+          <i class="ti ti-player-play-filled"></i>
+          <span>Run research cycle</span>
+        </button>
       </div>
-      <p class="settings-hint" id="settings-hint">
-        Get your key from the configured provider. Stored in localStorage only.
-      </p>
-      <div class="settings-footer">
-        <button class="btn-ghost" id="settings-close">Close</button>
-        <button class="btn-primary" id="save-key-btn">Save key</button>
+      <div class="action-bar-right">
+        <button class="btn-ghost" id="export-btn" title="Download all assignments + papers as Markdown">
+          <i class="ti ti-download"></i><span>Export</span>
+        </button>
+        <button class="btn-ghost btn-danger-ghost" id="clear-btn" title="Wipe all local data">
+          <i class="ti ti-trash"></i><span>Clear</span>
+        </button>
       </div>
-    </div>
+    </section>
 
-    <!-- Controls -->
-    <div class="controls">
-      <select id="run-area-select" class="run-area-select" aria-label="Research area for this run">
-        <option value="">1. Pick area…</option>
-      </select>
-      <button class="btn-primary" id="run-btn">2. Run research cycle →</button>
-      <button class="btn-ghost" id="settings-btn">
-        <i class="ti ti-settings" style="vertical-align:-2px; margin-right:4px;"></i>Settings
-      </button>
-      <button class="btn-ghost" id="export-btn">
-        <i class="ti ti-download" style="vertical-align:-2px; margin-right:4px;"></i>Export markdown
-      </button>
-      <button class="btn-ghost" id="clear-btn">Clear all</button>
-      <span class="run-pill" id="run-count-pill">0 runs · 0 papers · 0 assignments</span>
-      <span class="last-run" id="last-run"></span>
-    </div>
-
-    <!-- Progress bar -->
+    <!-- Progress -->
     <div class="progress-bar" id="progress-bar">
       <div class="progress-fill" id="progress-fill" style="width:0%"></div>
     </div>
 
-    <!-- Stats -->
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-label">Papers discovered</div>
-        <div class="stat-value" id="stat-papers">0</div>
+    <!-- Compact status strip (replaces stat cards) -->
+    <div class="status-strip">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label"><i class="ti ti-file-text"></i> Papers</div>
+          <div class="stat-value" id="stat-papers">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="ti ti-target"></i> Assignments</div>
+          <div class="stat-value" id="stat-assign">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="ti ti-refresh"></i> Runs</div>
+          <div class="stat-value" id="stat-runs">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="ti ti-category"></i> Areas</div>
+          <div class="stat-value" id="stat-areas">0</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Assignments</div>
-        <div class="stat-value" id="stat-assign">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Research runs</div>
-        <div class="stat-value" id="stat-runs">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Areas covered</div>
-        <div class="stat-value" id="stat-areas">0</div>
+      <div class="status-meta">
+        <span class="run-pill" id="run-count-pill">0 runs · 0 papers · 0 assignments</span>
+        <span class="last-run" id="last-run"></span>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="assignments">Assignments</button>
-      <button class="tab-btn" data-tab="papers">Papers</button>
-      <button class="tab-btn" data-tab="log">Research log</button>
-    </div>
+    <nav class="tab-bar" role="tablist">
+      <button class="tab-btn active" data-tab="assignments" role="tab"><i class="ti ti-target"></i> Assignments</button>
+      <button class="tab-btn" data-tab="papers" role="tab"><i class="ti ti-file-text"></i> Papers</button>
+      <button class="tab-btn" data-tab="log" role="tab"><i class="ti ti-terminal-2"></i> Log</button>
+    </nav>
 
     <!-- Tab: Assignments -->
-    <div class="tab-panel" id="panel-assignments">
+    <section class="tab-panel" id="panel-assignments" role="tabpanel">
       <div class="filter-bar" id="filter-bar"></div>
       <div id="assignments-container">
         <div class="empty-state">
           <i class="ti ti-books"></i>
-          <p>Hit "Run research cycle" — the agent will search for the latest papers and generate assignments you can build right now.</p>
+          <h3>No assignments yet</h3>
+          <p>Pick an area and run the research cycle — the agent will pull the right paper and generate one deep PyTorch project you can build right now.</p>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Tab: Papers -->
-    <div class="tab-panel" id="panel-papers" style="display:none;">
+    <section class="tab-panel" id="panel-papers" role="tabpanel" style="display:none;">
       <div id="papers-container">
         <div class="empty-state">
           <i class="ti ti-file-search"></i>
-          <p>No papers discovered yet. Run a research cycle to start building your library.</p>
+          <h3>Library is empty</h3>
+          <p>Run a research cycle to start building your library.</p>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Tab: Log -->
-    <div class="tab-panel" id="panel-log" style="display:none;">
+    <section class="tab-panel" id="panel-log" role="tabpanel" style="display:none;">
       <div class="log-container" id="log-container"></div>
-    </div>
+    </section>
+
+    <footer class="app-footer">
+      <span>Local-first · data stays in your browser</span>
+    </footer>
 
   </div>
 

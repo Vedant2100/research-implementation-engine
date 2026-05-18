@@ -70,6 +70,12 @@ function wireEvents() {
   document.getElementById("clear-btn").addEventListener("click", onClear);
   document.getElementById("settings-btn").addEventListener("click", () => toggleSettings(true));
   document.getElementById("settings-close").addEventListener("click", () => toggleSettings(false));
+  const altClose = document.getElementById("settings-close-alt");
+  if (altClose) altClose.addEventListener("click", () => toggleSettings(false));
+  document.querySelector(".settings-backdrop")?.addEventListener("click", () => toggleSettings(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") toggleSettings(false);
+  });
   document.getElementById("save-key-btn").addEventListener("click", onSaveKey);
   document.getElementById("export-btn").addEventListener("click", onExport);
 
