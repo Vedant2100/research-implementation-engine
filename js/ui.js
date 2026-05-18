@@ -61,54 +61,58 @@ function assignmentCard(a, status = "todo") {
 
   return `
 <div class="assignment-card${status === "done" ? " ac-done" : ""}" data-area="${esc(a.area)}" data-title="${esc(a.title)}">
-  <div class="ac-header">
-    <span class="ac-title">${esc(a.title)}</span>
-    <span class="ac-diff ${diffClass}">${esc(a.difficulty)} · ~${a.estimated_hours || "?"}h</span>
-  </div>
-  <div class="badge-row">
-    <span class="badge badge-${color}">${esc((a.area || "").replace("_", " "))}</span>
-    ${concepts.map((c) => `<span class="badge badge-${color} badge-dim">${esc(c)}</span>`).join("")}
-  </div>
-  <p class="ac-paper">Based on: ${esc(a.paper_ref || "")}</p>
-  <p class="ac-desc">${esc(a.context || "")}</p>
+  <div class="ac-body">
+    <div class="assignment-main">
+      <div class="ac-header">
+        <span class="ac-title">${esc(a.title)}</span>
+        <span class="ac-diff ${diffClass}">${esc(a.difficulty)} · ~${a.estimated_hours || "?"}h</span>
+      </div>
+      <div class="badge-row">
+        <span class="badge badge-${color}">${esc((a.area || "").replace("_", " "))}</span>
+        ${concepts.map((c) => `<span class="badge badge-${color} badge-dim">${esc(c)}</span>`).join("")}
+      </div>
+      <p class="ac-paper">Based on: ${esc(a.paper_ref || "")}</p>
+      <p class="ac-desc">${esc(a.context || "")}</p>
 
-  <p class="ac-label">Objective</p>
-  <p class="ac-desc ac-objective">${esc(a.learning_objective || "")}</p>
+      <p class="ac-label">Objective</p>
+      <p class="ac-desc ac-objective">${esc(a.learning_objective || "")}</p>
 
-  <p class="ac-label">Setup</p>
-  <p class="ac-desc">${esc(a.setup || "")}</p>
+      <p class="ac-label">Setup</p>
+      <p class="ac-desc">${esc(a.setup || "")}</p>
 
-  <p class="ac-label">Tasks</p>
-  <ul class="task-list">${tasks}</ul>
+      <p class="ac-label">Tasks</p>
+      <ul class="task-list">${tasks}</ul>
 
-  ${(a.verification || []).length
-    ? `<p class="ac-label">How to verify</p>
-       <ul class="task-list">${(a.verification || []).map((v) => `<li>${esc(v)}</li>`).join("")}</ul>`
-    : ""}
+      ${(a.verification || []).length
+        ? `<p class="ac-label">How to verify</p>
+           <ul class="task-list">${(a.verification || []).map((v) => `<li>${esc(v)}</li>`).join("")}</ul>`
+        : ""}
 
-  ${a.debug_hints ? `<p class="ac-label">Debug hint</p><p class="ac-desc">${esc(a.debug_hints)}</p>` : ""}
+      ${a.debug_hints ? `<p class="ac-label">Debug hint</p><p class="ac-desc">${esc(a.debug_hints)}</p>` : ""}
 
-  ${a.starter_code_hint
-    ? `<p class="ac-label">Starter pattern</p>
-       <pre class="code-hint">${esc(a.starter_code_hint)}</pre>`
-    : ""}
+      ${a.starter_code_hint
+        ? `<p class="ac-label">Starter pattern</p>
+           <pre class="code-hint">${esc(a.starter_code_hint)}</pre>`
+        : ""}
 
-  ${a.stretch_goal
-    ? `<div class="stretch-goal">
-         <strong>Stretch:</strong> ${esc(a.stretch_goal)}
-       </div>`
-    : ""}
+      ${a.stretch_goal
+        ? `<div class="stretch-goal">
+             <strong>Stretch:</strong> ${esc(a.stretch_goal)}
+           </div>`
+        : ""}
 
-  <div class="ac-action-bar">
-    <button class="btn-ghost code-toggle-btn"><i class="ti ti-code" style="vertical-align:-2px;margin-right:4px;"></i>Code</button>
-    ${statusBadgeHtml}
-    ${actionBtnHtml}
-  </div>
-  <div class="editor-wrap" style="display:none;">
-    <div class="editor-toolbar">
-      <button type="button" class="btn-ghost reset-harness-btn">Reset build guide</button>
+      <div class="ac-action-bar">
+        <button class="btn-ghost code-toggle-btn"><i class="ti ti-code" style="vertical-align:-2px;margin-right:4px;"></i><span>Code</span></button>
+        ${statusBadgeHtml}
+        ${actionBtnHtml}
+      </div>
     </div>
-    <div class="monaco-mount"></div>
+    <div class="editor-wrap" style="display:none;">
+      <div class="editor-toolbar">
+        <button type="button" class="btn-ghost reset-harness-btn">Reset build guide</button>
+      </div>
+      <div class="monaco-mount"></div>
+    </div>
   </div>
 </div>`;
 }
@@ -125,16 +129,21 @@ export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getH
       const wrap = card.querySelector(".editor-wrap");
       const opening = wrap.style.display === "none";
       wrap.style.display = opening ? "block" : "none";
+      card.classList.toggle("code-open", opening);
+      const label = card.querySelector(".code-toggle-btn span");
+      if (label) label.textContent = opening ? "Hide code" : "Code";
       if (opening && !wrap.dataset.initialized) {
         wrap.dataset.initialized = "1";
         _initMonaco(wrap.querySelector(".monaco-mount"), title, getCode, saveCode);
+      } else if (opening && wrap.querySelector(".monaco-mount")._editor) {
+        wrap.querySelector(".monaco-mount")._editor.layout();
       }
     }
 
     if (e.target.closest(".reset-harness-btn")) {
       clearCode(title);
       const mount = card.querySelector(".monaco-mount");
-      if (mount._editor) mount._editor.setValue(getBuildGuide(title));
+      if (mount._editor) mount._editor.setValue(getHarness(title));
     }
 
     if (e.target.closest(".mark-done-btn")) {

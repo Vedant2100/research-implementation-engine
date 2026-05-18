@@ -404,6 +404,32 @@ a:hover { text-decoration: underline; }
   box-shadow: var(--shadow);
   transform: translateY(-1px);
 }
+.assignment-card.code-open {
+  max-width: min(1320px, calc(100vw - 3rem));
+  width: min(1320px, calc(100vw - 3rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+.assignment-card.code-open:hover {
+  transform: translateX(-50%) translateY(-1px);
+}
+.ac-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.assignment-main {
+  min-width: 0;
+}
+.assignment-card.code-open .ac-body {
+  grid-template-columns: minmax(340px, 0.86fr) minmax(460px, 1.14fr);
+  align-items: start;
+}
+.assignment-card.code-open .assignment-main {
+  max-height: 620px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
 
 .ac-header {
   display: flex;
@@ -567,11 +593,14 @@ a:hover { text-decoration: underline; }
 
 /* ─── Monaco panel ──────────────────────────────────────────────────────── */
 .editor-wrap {
-  margin-top: 14px;
+  margin-top: 0;
   border: 1px solid var(--border-2);
   border-radius: var(--r);
   overflow: hidden;
   background: var(--surface-2);
+  min-width: 0;
+  position: sticky;
+  top: 16px;
 }
 .editor-toolbar {
   display: flex;
@@ -588,7 +617,7 @@ a:hover { text-decoration: underline; }
   letter-spacing: 0.04em;
 }
 .editor-toolbar .btn-ghost { font-size: 12px; padding: 4px 10px; }
-.monaco-mount { height: 340px; width: 100%; }
+.monaco-mount { height: 620px; width: 100%; }
 
 /* ─── Paper cards ───────────────────────────────────────────────────────── */
 .paper-card {
@@ -754,4 +783,30 @@ body:has(#settings-panel[style*="display:block"])  .settings-backdrop {
   .run-area-select { min-width: 0; width: 100%; }
   .btn-run { flex: 1; justify-content: center; }
   .tab-btn span { display: inline; }
+}
+
+@media (max-width: 980px) {
+  .assignment-card.code-open {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    transform: none;
+  }
+  .assignment-card.code-open:hover {
+    transform: translateY(-1px);
+  }
+  .assignment-card.code-open .ac-body {
+    grid-template-columns: 1fr;
+  }
+  .assignment-card.code-open .assignment-main {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+  .editor-wrap {
+    position: static;
+  }
+  .monaco-mount {
+    height: 420px;
+  }
 }
