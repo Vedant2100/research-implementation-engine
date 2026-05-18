@@ -8,25 +8,42 @@
  * Users set it via the UI or via a .env approach if they wrap this in Node.
  */
 
+// Provider profiles — switch with CONFIG.PROVIDER below.
+export const PROVIDERS = {
+  nvidia: {
+    label: "NVIDIA NIM",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    model: "deepseek-ai/deepseek-r1",
+    keyHint: "nvapi-...",
+    keyDocsUrl: "https://build.nvidia.com/",
+    format: "openai",
+    keyPrefix: "nvapi-",
+  },
+  anthropic: {
+    label: "Anthropic (Claude)",
+    baseUrl: "https://api.anthropic.com/v1",
+    model: "claude-sonnet-4-20250514",
+    keyHint: "sk-ant-api03-...",
+    keyDocsUrl: "https://console.anthropic.com/settings/keys",
+    format: "anthropic",
+    keyPrefix: "sk-ant-",
+  },
+};
+
 export const CONFIG = {
-  // Paste your Anthropic API key here, or leave blank and enter it in the UI
+  PROVIDER: "nvidia",
+
   API_KEY: "",
 
-  // Model to use — claude-sonnet-4-20250514 is the sweet spot for speed + quality
-  MODEL: "claude-sonnet-4-20250514",
-
-  // Max tokens for the research agent response
   MAX_TOKENS: 16000,
 
-  // Enable web search on each run (costs slightly more, but finds latest papers)
-  ENABLE_WEB_SEARCH: true,
+  ENABLE_WEB_SEARCH: false,
 
-  // Max papers to keep in DB before pruning oldest
   MAX_PAPERS: 200,
-
-  // Max assignments to keep in DB
   MAX_ASSIGNMENTS: 100,
-
-  // LocalStorage key for persistence
   STORAGE_KEY: "pytorch_research_engine_v1",
 };
+
+export function getProvider() {
+  return PROVIDERS[CONFIG.PROVIDER] || PROVIDERS.nvidia;
+}

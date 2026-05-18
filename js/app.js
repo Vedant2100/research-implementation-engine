@@ -25,6 +25,7 @@ import {
   attachEditorPanels,
 } from "./ui.js";
 import { RESEARCH_AREAS, RUN_AREAS, getAreaById } from "./prompt.js";
+import { getProvider } from "../config/config.js";
 import { getCode, saveCode, getStatus, setStatus, clearCode } from "./code-store.js";
 import { getBuildGuide } from "./build-guides.js";
 
@@ -42,11 +43,26 @@ document.addEventListener("DOMContentLoaded", () => {
   wireEvents();
   refreshUI();
   prefillApiKey();
+  applyProviderHints();
   const seeded = consumeSeedNotice();
   if (seeded > 0) {
     log(`Loaded ${seeded} starter items (transformers + RL, medium).`, "ok");
   }
+  const provider = getProvider();
+  log(`Provider: ${provider.label} · model ${provider.model}`, "search");
 });
+
+function applyProviderHints() {
+  const provider = getProvider();
+  const input = document.getElementById("api-key-input");
+  if (input) input.placeholder = provider.keyHint;
+  const hint = document.getElementById("settings-hint");
+  if (hint) {
+    hint.innerHTML =
+      `Get your key at <a href="${provider.keyDocsUrl}" target="_blank">${new URL(provider.keyDocsUrl).host}</a>. ` +
+      `Stored in localStorage only — sent only to ${new URL(provider.baseUrl).host}.`;
+  }
+}
 
 // ─── Events ────────────────────────────────────────────────────────────────
 function wireEvents() {
@@ -153,13 +169,16 @@ function onClear() {
 // ─── API key ───────────────────────────────────────────────────────────────
 function onSaveKey() {
   const key = document.getElementById("api-key-input").value.trim();
-  if (!key.startsWith("sk-ant-")) {
-    alert("That doesn't look like an Anthropic key (should start with sk-ant-)");
-    return;
+  const provider = getProvider();
+  if (provider.keyPrefix && !key.startsWith(provider.keyPrefix)) {
+    const ok = confirm(
+      `Key doesn't start with "${provider.keyPrefix}" (expected for ${provider.label}). Save anyway?`
+    );
+    if (!ok) return;
   }
   saveApiKey(key);
   toggleSettings(false);
-  log("API key saved.", "ok");
+  log(`${provider.label} API key saved.`, "ok");
 }
 
 function prefillApiKey() {

@@ -24,11 +24,10 @@
       <h2>Settings</h2>
       <div class="settings-row">
         <label for="api-key-input">API key</label>
-        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off" />
+        <input type="password" id="api-key-input" placeholder="nvapi-..." autocomplete="off" />
       </div>
-      <p class="settings-hint">
-        Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
-        Stored in localStorage only — never sent anywhere except api.anthropic.com.
+      <p class="settings-hint" id="settings-hint">
+        Get your key from the configured provider. Stored in localStorage only.
       </p>
       <div class="settings-footer">
         <button class="btn-ghost" id="settings-close">Close</button>

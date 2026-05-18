@@ -1,36 +1,16 @@
 /**
  * AGENT MODULE
  * ────────────
- * Handles all Anthropic API calls. Isolated here so Claude Code can:
- *   - Swap the model
- *   - Add new tools (e.g. arxiv search, github search)
- *   - Change the multi-turn conversation strategy
- *   - Add retry logic / rate limiting
- *
- * Claude Code instruction: if the user says "add arxiv search as a tool",
- * add the tool definition to TOOLS array and handle it in parseResponse().
+ * Sends one research request to the configured LLM provider.
+ * Supports two response formats:
+ *   - openai     → POST {baseUrl}/chat/completions (NVIDIA NIM, DeepSeek, OpenAI, etc.)
+ *   - anthropic  → POST {baseUrl}/messages  (Claude)
  */
 
-import { CONFIG } from "../config/config.js";
+import { CONFIG, getProvider } from "../config/config.js";
 import { SYSTEM_PROMPT } from "./prompt.js";
 import { getApiKey } from "./storage.js";
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-
-// ─── Tool definitions ──────────────────────────────────────────────────────
-const TOOLS = [];
-
-if (CONFIG.ENABLE_WEB_SEARCH) {
-  TOOLS.push({ type: "web_search_20250305", name: "web_search" });
-}
-
-// ─── Main research call ────────────────────────────────────────────────────
-/**
- * Run one research cycle.
- * @param {string[]} existingTitles - paper titles already in DB (to avoid repeats)
- * @param {function} onLog - callback(message, type) for streaming log updates
- * @returns {{ papers: object[], assignments: object[], searchCount: number }}
- */
 export async function runResearchAgent(
   existingTitles = [],
   onLog = () => {},
@@ -40,21 +20,77 @@ export async function runResearchAgent(
   if (!apiKey) throw new Error("No API key set. Add it in Settings.");
   if (!areaId || !areaLabel) throw new Error("Pick a research area before running.");
 
+  const provider = getProvider();
   const userMessage = buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles);
 
-  onLog(`Researching: ${areaLabel} (1 assignment max)...`, "search");
-  onLog("Calling Anthropic API with web search enabled...", "search");
+  onLog(`Researching: ${areaLabel} via ${provider.label} (${provider.model})...`, "search");
+
+  const { rawText, searchCount } =
+    provider.format === "anthropic"
+      ? await callAnthropic(provider, apiKey, userMessage, onLog)
+      : await callOpenAICompatible(provider, apiKey, userMessage, onLog);
+
+  return parseResponse(rawText, searchCount, onLog);
+}
+
+async function callOpenAICompatible(provider, apiKey, userMessage, onLog) {
+  const body = {
+    model: provider.model,
+    max_tokens: CONFIG.MAX_TOKENS,
+    temperature: 0.6,
+    top_p: 0.95,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userMessage },
+    ],
+  };
+
+  const response = await fetch(`${provider.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const msg = err?.error?.message || err?.detail || err?.message || `API error ${response.status}`;
+    if (response.status === 0 || response.status === 401) {
+      throw new Error(`${provider.label}: ${msg}. Check API key.`);
+    }
+    throw new Error(`${provider.label}: ${msg}`);
+  }
+
+  const data = await response.json();
+  const choice = data.choices?.[0]?.message;
+  if (!choice) throw new Error("No message returned from provider.");
+
+  const thinking = choice.reasoning_content || "";
+  const text = choice.content || "";
+
+  if (thinking) onLog(`Model thought for ~${thinking.length} chars`, "search");
+  if (data.usage?.total_tokens) onLog(`Tokens used: ${data.usage.total_tokens}`, "ok");
+
+  return { rawText: text, searchCount: 0 };
+}
+
+async function callAnthropic(provider, apiKey, userMessage, onLog) {
+  const tools = CONFIG.ENABLE_WEB_SEARCH
+    ? [{ type: "web_search_20250305", name: "web_search" }]
+    : [];
 
   const body = {
-    model: CONFIG.MODEL,
+    model: provider.model,
     max_tokens: CONFIG.MAX_TOKENS,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   };
+  if (tools.length) body.tools = tools;
 
-  if (TOOLS.length > 0) body.tools = TOOLS;
-
-  const response = await fetch(ANTHROPIC_API, {
+  const response = await fetch(`${provider.baseUrl}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -67,36 +103,41 @@ export async function runResearchAgent(
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `API error ${response.status}`);
+    throw new Error(err?.error?.message || `Anthropic API error ${response.status}`);
   }
 
   const data = await response.json();
-  return parseResponse(data, onLog);
-}
-
-// ─── Response parsing ──────────────────────────────────────────────────────
-function parseResponse(data, onLog) {
   const searchBlocks = (data.content || []).filter((b) => b.type === "tool_use");
-  if (searchBlocks.length > 0) {
-    onLog(`Agent ran ${searchBlocks.length} web search(es) for latest papers`, "search");
-  }
-
-  const rawText = (data.content || [])
+  const text = (data.content || [])
     .filter((b) => b.type === "text")
     .map((b) => b.text)
     .join("");
 
-  const cleaned = rawText.replace(/```json|```/g, "").trim();
+  if (searchBlocks.length > 0) {
+    onLog(`Anthropic ran ${searchBlocks.length} web search(es)`, "search");
+  }
+  return { rawText: text, searchCount: searchBlocks.length };
+}
+
+function parseResponse(rawText, searchCount, onLog) {
+  let cleaned = String(rawText || "");
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  cleaned = cleaned.replace(/```json|```/g, "").trim();
+
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-
   if (start === -1 || end === -1) {
     throw new Error(
-      "Agent returned no parseable JSON. Raw response:\n" + rawText.slice(0, 500)
+      "Agent returned no parseable JSON. Raw response:\n" + cleaned.slice(0, 500)
     );
   }
 
-  const parsed = JSON.parse(cleaned.substring(start, end + 1));
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned.substring(start, end + 1));
+  } catch (e) {
+    throw new Error("JSON parse failed: " + e.message + "\n" + cleaned.slice(0, 400));
+  }
 
   const papers = Array.isArray(parsed.papers) ? parsed.papers : [];
   let assignments = Array.isArray(parsed.assignments) ? parsed.assignments : [];
@@ -113,10 +154,9 @@ function parseResponse(data, onLog) {
   }
 
   onLog(`Parsed ${papers.length} papers, ${assignments.length} assignment`, "ok");
-  return { papers, assignments, searchCount: searchBlocks.length };
+  return { papers, assignments, searchCount };
 }
 
-// ─── Message builder ───────────────────────────────────────────────────────
 function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles) {
   const existingPapers =
     existingTitles.length > 0
@@ -132,7 +172,8 @@ function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentT
 THIS RUN — FOCUS AREA: ${areaLabel}
 area id (use in JSON "area" field): ${areaId}
 
-Do deep, proper research ONLY in this area. Use web search. Find the best recent papers
+Do deep research ONLY in this area using your knowledge of the literature. Find the
+best recent papers (2024-2026 if you can recall them; older landmarks are fine too)
 and design exactly ONE assignment that teaches the maximum depth (one end-to-end
 PyTorch project, not a survey). Include code_build_guide: comment-only steps (# lines),
 no class skeletons or NotImplementedError stubs.
@@ -142,6 +183,6 @@ ${existingPapers}
 ${existingAssigns}
 
 Output: 4-6 papers (all area="${areaId}"), exactly 1 assignment (area="${areaId}").
-Return ONLY valid JSON. No markdown fences. No preamble.
+Return ONLY valid JSON. No markdown fences. No preamble. No <think> tags in output.
   `.trim();
 }
