@@ -11,9 +11,18 @@
 // Provider profiles — switch with CONFIG.PROVIDER below.
 export const PROVIDERS = {
   nvidia: {
-    label: "NVIDIA NIM",
+    label: "NVIDIA NIM (DeepSeek V4 Pro)",
     baseUrl: "https://integrate.api.nvidia.com/v1",
-    model: "deepseek-ai/deepseek-r1",
+    model: "deepseek-ai/deepseek-v4-pro",
+    keyHint: "nvapi-...",
+    keyDocsUrl: "https://build.nvidia.com/",
+    format: "openai",
+    keyPrefix: "nvapi-",
+  },
+  nvidiaQwen: {
+    label: "NVIDIA NIM (Qwen3 Thinking)",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    model: "qwen/qwen3-next-80b-a3b-thinking",
     keyHint: "nvapi-...",
     keyDocsUrl: "https://build.nvidia.com/",
     format: "openai",
@@ -32,6 +41,12 @@ export const PROVIDERS = {
 
 export const CONFIG = {
   PROVIDER: "nvidia",
+
+  // Optional proxy that prepends the provider baseUrl path.
+  // Required for NVIDIA NIM / DeepSeek / Gemini from GitHub Pages (no CORS).
+  // Leave empty for local development with `npm run dev` (CORS bypass via dev server).
+  // Example Cloudflare Worker: "https://nim-proxy.<your>.workers.dev"
+  PROXY_URL: "",
 
   API_KEY: "",
 

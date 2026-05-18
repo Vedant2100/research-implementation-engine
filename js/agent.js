@@ -45,7 +45,10 @@ async function callOpenAICompatible(provider, apiKey, userMessage, onLog) {
     ],
   };
 
-  const response = await fetch(`${provider.baseUrl}/chat/completions`, {
+  const url = CONFIG.PROXY_URL
+    ? `${CONFIG.PROXY_URL.replace(/\/$/, "")}/chat/completions`
+    : `${provider.baseUrl}/chat/completions`;
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
