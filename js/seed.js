@@ -3,7 +3,7 @@
  * Merged once per browser via storage.js (SEED_VERSION).
  */
 
-export const SEED_VERSION = "novice_single_file_v2";
+export const SEED_VERSION = "tiny_attention_only_v3";
 
 export const SEED_PAPERS = [
   {
@@ -90,7 +90,7 @@ export const SEED_PAPERS = [
       "DPO replaced PPO for most alignment fine-tuning pipelines — one loss, no reward model sampling loop.",
     pytorch_hook: "-log σ(β · (log π_θ(y_w|x) - log π_θ(y_l|x) - log π_ref gap))) on token logprobs",
   },
-];
+].filter((paper) => paper.title === "Attention Is All You Need");
 
 export const SEED_ASSIGNMENTS = [
   {
@@ -211,28 +211,7 @@ export const SEED_ASSIGNMENTS = [
         checkpoint: "Loss decreases on a tiny copy task.",
       },
     ],
-    checkpoint_tests: [
-      "assert scores.shape == (B, T, T)",
-      "assert weights[..., torch.triu(torch.ones(T, T), diagonal=1).bool()].max() < 1e-5",
-      "assert q_proj.weight.grad is not None after backward",
-    ],
-    hint_levels: [
-      "The transpose is only on the last two dims of k.",
-      "Scale scores by sqrt(head_dim) before softmax.",
-      "Use masked_fill(mask, -1e9) before softmax.",
-    ],
-    stretch_goal: "Split the dimension into multiple heads and concatenate them back together.",
     key_pytorch_concepts: ["matmul", "softmax", "masking", "nn.Linear"],
-    debug_hints:
-      "If attention probabilities are NaN, inspect masked score values before softmax and ensure at least one unmasked position per row.",
-    starter_code_hint:
-      "scores = q @ k.transpose(-2, -1); scores = scores / sqrt(d); weights = softmax(scores, dim=-1); out = weights @ v",
-    verification: [
-      "inline check: score, weight, and output shapes match expectations",
-      "smoke: 100 tiny batches, no NaN, loss decreases",
-      "eval: causal mask test proves future positions are blocked",
-      "done when: you can explain why QK^T produces token-to-token weights",
-    ],
     code_build_guide:
       "# Project: Tiny attention by hand\n# Paper: Attention Is All You Need\n# End goal: implement scaled dot-product attention and a causal mask\n# Compute: CPU is enough\n# File: assignment.py only\n#\n# STEP 0: Use one file\n# - Put helper functions, TinyAttention, toy data, and inline asserts in this one file\n# - When ready, run: python assignment.py\n# - Do not create attention.py, test_attention.py, packages, or extra modules\n#\n# STEP 1: Start with random tensors\n# - q, k, v each have shape (B, T, D)\n# - Use B=2, T=4, D=8\n# - Checkpoint: scores from q @ k.transpose(-2, -1) have shape (B, T, T)\n#\n# STEP 2: Scale and softmax\n# - Divide scores by sqrt(D)\n# - Apply softmax over the last dimension\n# - Checkpoint: each row of weights sums to 1\n#\n# STEP 3: Add the causal mask\n# - Create an upper-triangular boolean mask for future tokens\n# - Fill future scores with a large negative number before softmax\n# - Checkpoint: weights above the diagonal are close to zero\n#\n# STEP 4: Wrap in a module\n# - Create TinyAttention with q_proj, k_proj, v_proj, out_proj in this same file\n# - Forward takes x with shape (B, T, D)\n# - Checkpoint: output has shape (B, T, D)\n#\n# STEP 5: Add inline checks at the bottom\n# - Use assert statements instead of a separate test file\n# - Include one tiny backward pass to confirm gradients exist\n#\n# HINT 1: transpose(-2, -1) swaps time and dim for k\n# HINT 2: softmax dim must be -1\n# HINT 3: masked_fill happens before softmax\n#\n# DONE: mark done when inline checks pass and a tiny backward pass gives gradients",
   },
@@ -440,4 +419,4 @@ export const SEED_ASSIGNMENTS = [
       "done when: val pair-accuracy beats init checkpoint",
     ],
   },
-];
+].filter((assignment) => assignment.title === "Tiny attention by hand");

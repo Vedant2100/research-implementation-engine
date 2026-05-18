@@ -52,8 +52,6 @@ function assignmentCard(a, status = "todo") {
   const tasks = (a.tasks || []).map((t) => `<li>${esc(t)}</li>`).join("");
   const prerequisites = renderCompactList(a.prerequisite_concepts || []);
   const conceptLadder = renderCompactList(a.concept_ladder || []);
-  const checkpointTests = renderCompactList(a.checkpoint_tests || []);
-  const hintLevels = renderCompactList(a.hint_levels || []);
   const milestones = renderMilestones(a.milestones || []);
 
   const statusBadgeHtml = status === "done"
@@ -106,26 +104,6 @@ function assignmentCard(a, status = "todo") {
       <ul class="task-list">${tasks}</ul>
 
       ${milestones ? `<p class="ac-label">Milestones</p>${milestones}` : ""}
-      ${checkpointTests ? `<p class="ac-label">Checkpoint tests</p>${checkpointTests}` : ""}
-      ${hintLevels ? `<p class="ac-label">Hint levels</p>${hintLevels}` : ""}
-
-      ${(a.verification || []).length
-        ? `<p class="ac-label">How to verify</p>
-           <ul class="task-list">${(a.verification || []).map((v) => `<li>${esc(v)}</li>`).join("")}</ul>`
-        : ""}
-
-      ${a.debug_hints ? `<p class="ac-label">Debug hint</p><p class="ac-desc">${esc(a.debug_hints)}</p>` : ""}
-
-      ${a.starter_code_hint
-        ? `<p class="ac-label">Starter pattern</p>
-           <pre class="code-hint">${esc(a.starter_code_hint)}</pre>`
-        : ""}
-
-      ${a.stretch_goal
-        ? `<div class="stretch-goal">
-             <strong>Stretch:</strong> ${esc(a.stretch_goal)}
-           </div>`
-        : ""}
 
       <div class="ac-action-bar">
         <button class="btn-ghost code-toggle-btn"><i class="ti ti-code" style="vertical-align:-2px;margin-right:4px;"></i><span>Code</span></button>

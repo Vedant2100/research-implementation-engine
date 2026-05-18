@@ -282,20 +282,6 @@ function buildMarkdownExport(db) {
         }
       });
     }
-    if ((a.checkpoint_tests || []).length) {
-      lines.push("", "**Checkpoint tests:**");
-      a.checkpoint_tests.forEach((t) => lines.push("- " + t));
-    }
-    if ((a.hint_levels || []).length) {
-      lines.push("", "**Hint levels:**");
-      a.hint_levels.forEach((h) => lines.push("- " + h));
-    }
-    if ((a.verification || []).length) {
-      lines.push("", "**How to verify:**");
-      a.verification.forEach((v) => lines.push("- " + v));
-    }
-    if (a.stretch_goal) lines.push("", "**Stretch:** " + a.stretch_goal);
-    if (a.debug_hints) lines.push("", "**Debug hint:** " + a.debug_hints);
     lines.push("", "---", "");
   }
 

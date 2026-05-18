@@ -107,6 +107,8 @@ DO include:
 - STEP 1..N: one section per milestone, including names, tensor shapes, and
   exact checkpoint tests.
 - HINT LEVELS: tiny hint, stronger hint, solution direction, still as comments.
+- DEBUG, VERIFY, STARTER PATTERN, and STRETCH sections belong inside this
+  comment-only guide, not as separate card fields.
 - DONE: the checks that must pass before marking the assignment done.
 
 OUTPUT FORMAT - STRICT JSON ONLY
@@ -154,24 +156,7 @@ Return exactly this structure. No markdown, no preamble, nothing else:
           "checkpoint": "How to know it works"
         }
       ],
-      "checkpoint_tests": [
-        "Small test/assertion the student can run before moving on"
-      ],
-      "hint_levels": [
-        "Tiny hint",
-        "Stronger hint",
-        "Solution direction without full code"
-      ],
-      "stretch_goal": "Optional next step after done",
       "key_pytorch_concepts": ["concept1", "concept2", "concept3"],
-      "debug_hints": "Likely failure and how to diagnose it",
-      "starter_code_hint": "Pseudocode or a pattern, not complete code",
-      "verification": [
-        "inline check: exact assertion to put at the bottom of the same file",
-        "smoke: tiny run details",
-        "eval: metric or plot",
-        "done when: one sentence defining success"
-      ],
       "code_build_guide": "Python source string containing ONLY # comment lines."
     }
   ]
