@@ -3,7 +3,7 @@
  * Merged once per browser via storage.js (SEED_VERSION).
  */
 
-export const SEED_VERSION = "novice_path_v1";
+export const SEED_VERSION = "novice_single_file_v2";
 
 export const SEED_PAPERS = [
   {
@@ -113,9 +113,9 @@ export const SEED_ASSIGNMENTS = [
       "Train with loss.backward() and optimizer.step()",
     ],
     next_30_minutes:
-      "Create train.py, generate x/y tensors for y = 3x + noise, and print the shape of every tensor before training.",
+      "In the one editor file, generate x/y tensors for y = 3x + noise, and print the shape of every tensor before training.",
     setup:
-      "CPU is enough. No dataset download. Files: train.py, test_train_loop.py. Use 256 synthetic points and a one-layer nn.Linear model.",
+      "CPU is enough. No dataset download. Use one file: assignment.py. Put tiny test functions/assertions at the bottom of that same file.",
     tasks: [
       "Task 1: Generate synthetic x/y tensors and split train/val.",
       "Task 2: Build a one-layer nn.Module and verify output shape.",
@@ -156,13 +156,13 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       "for step in range(200): zero gradients, run model, compute mse, backward, optimizer step",
     verification: [
-      "pytest: model output shape and finite loss on a 4-row batch",
+      "inline check: model output shape and finite loss on a 4-row batch",
       "smoke: 200 steps on CPU, loss finite and decreasing",
       "eval: final validation MSE lower than initial validation MSE",
       "done when: you can explain what backward() and step() each changed",
     ],
     code_build_guide:
-      "# Project: PyTorch training loop from zero\n# Paper: PyTorch: An Imperative Style, High-Performance Deep Learning Library\n# End goal: train a tiny model until validation loss goes down\n# Compute: CPU is enough\n#\n# STEP 0: Create files\n# - train.py\n# - test_train_loop.py\n#\n# STEP 1: Generate data\n# - Make x with shape (256, 1)\n# - Make y = 3 * x + small noise, also shape (256, 1)\n# - Split into train and validation tensors\n# - Checkpoint: print x.shape, y.shape, x_train.shape\n#\n# STEP 2: Build the model\n# - Create a small nn.Module named TinyRegressor\n# - It should contain one nn.Linear(1, 1)\n# - Its forward(x) returns predictions with shape (batch, 1)\n# - Checkpoint: assert model(x[:4]).shape == (4, 1)\n#\n# STEP 3: Write the training loop\n# - Use MSE loss\n# - Use Adam or SGD\n# - Each step: zero gradients, forward pass, compute loss, backward, optimizer step\n# - Checkpoint: after backward, confirm gradients are finite\n#\n# STEP 4: Track validation loss\n# - Save initial validation loss before training\n# - Print train and validation loss every 20 steps\n# - Checkpoint: final validation loss should be below initial validation loss\n#\n# HINT 1: If loss is not scalar, check reduction='mean'\n# HINT 2: If gradients are None, backward was not called on the loss from this model\n# HINT 3: The optimizer only changes parameters after optimizer.step()\n#\n# DONE: mark done when tests pass and you can explain zero_grad, backward, and step",
+      "# Project: PyTorch training loop from zero\n# Paper: PyTorch: An Imperative Style, High-Performance Deep Learning Library\n# End goal: train a tiny model until validation loss goes down\n# Compute: CPU is enough\n# File: assignment.py only\n#\n# STEP 0: Use one file\n# - Put everything in this one editor buffer: data, model, training loop, and checks\n# - When you are ready, save/copy this buffer as assignment.py and run: python assignment.py\n# - Do not create train.py, tests/, packages, or extra modules for this assignment\n#\n# STEP 1: Generate data\n# - Make x with shape (256, 1)\n# - Make y = 3 * x + small noise, also shape (256, 1)\n# - Split into train and validation tensors\n# - Checkpoint: print x.shape, y.shape, x_train.shape\n#\n# STEP 2: Build the model\n# - Create a small nn.Module named TinyRegressor in this same file\n# - It should contain one nn.Linear(1, 1)\n# - Its forward(x) returns predictions with shape (batch, 1)\n# - Checkpoint: assert model(x[:4]).shape == (4, 1)\n#\n# STEP 3: Write the training loop\n# - Use MSE loss\n# - Use Adam or SGD\n# - Each step: zero gradients, forward pass, compute loss, backward, optimizer step\n# - Checkpoint: after backward, confirm gradients are finite\n#\n# STEP 4: Add inline checks at the bottom\n# - Add small assert statements in this same file instead of a separate test file\n# - Save initial validation loss before training\n# - Print train and validation loss every 20 steps\n# - Checkpoint: final validation loss should be below initial validation loss\n#\n# HINT 1: If loss is not scalar, check reduction='mean'\n# HINT 2: If gradients are None, backward was not called on the loss from this model\n# HINT 3: The optimizer only changes parameters after optimizer.step()\n#\n# DONE: mark done when inline checks pass and you can explain zero_grad, backward, and step",
   },
   {
     title: "Tiny attention by hand",
@@ -187,7 +187,7 @@ export const SEED_ASSIGNMENTS = [
     next_30_minutes:
       "Make random q, k, v tensors with shape (batch=2, time=4, dim=8), compute q @ k.transpose(-2, -1), and inspect the score shape.",
     setup:
-      "CPU is enough. Synthetic tensors only. Files: attention.py and test_attention.py.",
+      "CPU is enough. Synthetic tensors only. Use one file: assignment.py. Put attention code, tiny training code, and inline assertions in that same file.",
     tasks: [
       "Task 1: Implement scaled dot-product attention as a function.",
       "Task 2: Add a causal mask and prove future positions get zero probability.",
@@ -228,13 +228,13 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       "scores = q @ k.transpose(-2, -1); scores = scores / sqrt(d); weights = softmax(scores, dim=-1); out = weights @ v",
     verification: [
-      "pytest: score, weight, and output shapes match expectations",
+      "inline check: score, weight, and output shapes match expectations",
       "smoke: 100 tiny batches, no NaN, loss decreases",
       "eval: causal mask test proves future positions are blocked",
       "done when: you can explain why QK^T produces token-to-token weights",
     ],
     code_build_guide:
-      "# Project: Tiny attention by hand\n# Paper: Attention Is All You Need\n# End goal: implement scaled dot-product attention and a causal mask\n# Compute: CPU is enough\n#\n# STEP 0: Create files\n# - attention.py\n# - test_attention.py\n#\n# STEP 1: Start with random tensors\n# - q, k, v each have shape (B, T, D)\n# - Use B=2, T=4, D=8\n# - Checkpoint: scores from q @ k.transpose(-2, -1) have shape (B, T, T)\n#\n# STEP 2: Scale and softmax\n# - Divide scores by sqrt(D)\n# - Apply softmax over the last dimension\n# - Checkpoint: each row of weights sums to 1\n#\n# STEP 3: Add the causal mask\n# - Create an upper-triangular boolean mask for future tokens\n# - Fill future scores with a large negative number before softmax\n# - Checkpoint: weights above the diagonal are close to zero\n#\n# STEP 4: Wrap in a module\n# - Create TinyAttention with q_proj, k_proj, v_proj, out_proj\n# - Forward takes x with shape (B, T, D)\n# - Checkpoint: output has shape (B, T, D)\n#\n# HINT 1: transpose(-2, -1) swaps time and dim for k\n# HINT 2: softmax dim must be -1\n# HINT 3: masked_fill happens before softmax\n#\n# DONE: mark done when shape tests pass and a tiny backward pass gives gradients",
+      "# Project: Tiny attention by hand\n# Paper: Attention Is All You Need\n# End goal: implement scaled dot-product attention and a causal mask\n# Compute: CPU is enough\n# File: assignment.py only\n#\n# STEP 0: Use one file\n# - Put helper functions, TinyAttention, toy data, and inline asserts in this one file\n# - When ready, run: python assignment.py\n# - Do not create attention.py, test_attention.py, packages, or extra modules\n#\n# STEP 1: Start with random tensors\n# - q, k, v each have shape (B, T, D)\n# - Use B=2, T=4, D=8\n# - Checkpoint: scores from q @ k.transpose(-2, -1) have shape (B, T, T)\n#\n# STEP 2: Scale and softmax\n# - Divide scores by sqrt(D)\n# - Apply softmax over the last dimension\n# - Checkpoint: each row of weights sums to 1\n#\n# STEP 3: Add the causal mask\n# - Create an upper-triangular boolean mask for future tokens\n# - Fill future scores with a large negative number before softmax\n# - Checkpoint: weights above the diagonal are close to zero\n#\n# STEP 4: Wrap in a module\n# - Create TinyAttention with q_proj, k_proj, v_proj, out_proj in this same file\n# - Forward takes x with shape (B, T, D)\n# - Checkpoint: output has shape (B, T, D)\n#\n# STEP 5: Add inline checks at the bottom\n# - Use assert statements instead of a separate test file\n# - Include one tiny backward pass to confirm gradients exist\n#\n# HINT 1: transpose(-2, -1) swaps time and dim for k\n# HINT 2: softmax dim must be -1\n# HINT 3: masked_fill happens before softmax\n#\n# DONE: mark done when inline checks pass and a tiny backward pass gives gradients",
   },
   {
     title: "Q-learning before RLHF",
@@ -258,7 +258,7 @@ export const SEED_ASSIGNMENTS = [
     next_30_minutes:
       "Define a 1D gridworld with five positions, two actions, and reward +1 at the goal. Print one transition tuple.",
     setup:
-      "CPU is enough. No gym dependency required. Files: env.py, qnet.py, train_dqn.py, test_q_learning.py.",
+      "CPU is enough. No gym dependency required. Use one file: assignment.py. Put the environment, QNet, training loop, and inline checks in that same file.",
     tasks: [
       "Task 1: Build the tiny gridworld transition function.",
       "Task 2: Implement QNet(state) -> values for two actions.",
@@ -299,13 +299,13 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       "chosen_q = q_values.gather(1, actions[:, None]).squeeze(1); target = rewards + gamma * next_q.max(dim=1).values * not_done",
     verification: [
-      "pytest: q-network output shape and target detach behavior",
+      "inline check: q-network output shape and target detach behavior",
       "smoke: 200 episodes on CPU, no NaN",
       "eval: average reward improves across training",
       "done when: you can explain reward, target, and chosen_q in one paragraph",
     ],
     code_build_guide:
-      "# Project: Q-learning before RLHF\n# Paper: Human-level control through deep reinforcement learning\n# End goal: train a tiny Q-network in a toy gridworld\n# Compute: CPU is enough\n#\n# STEP 0: Create files\n# - env.py\n# - qnet.py\n# - train_dqn.py\n# - test_q_learning.py\n#\n# STEP 1: Build the environment\n# - State is an integer position from 0 to 4\n# - Actions are left=0 and right=1\n# - Reward is +1 when the agent reaches position 4\n# - Checkpoint: stepping right from position 3 ends episode with reward 1\n#\n# STEP 2: Build QNet\n# - Input can be one-hot state with shape (B, 5)\n# - Output has shape (B, 2), one value per action\n# - Checkpoint: qnet(states).shape == (B, 2)\n#\n# STEP 3: Compute Bellman targets\n# - chosen_q is the Q value for the action actually taken\n# - target is reward + gamma * max next_q for non-terminal states\n# - Use no_grad for next_q\n# - Checkpoint: target does not require grad\n#\n# STEP 4: Train\n# - Use epsilon-greedy exploration\n# - Store first 20 and last 20 episode rewards\n# - Checkpoint: later average reward is higher\n#\n# HINT 1: gather selects the Q value for the action column\n# HINT 2: terminal states should not include next_q\n# HINT 3: lower epsilon over time after the agent explores enough\n#\n# DONE: mark done when shape tests pass and reward improves",
+      "# Project: Q-learning before RLHF\n# Paper: Human-level control through deep reinforcement learning\n# End goal: train a tiny Q-network in a toy gridworld\n# Compute: CPU is enough\n# File: assignment.py only\n#\n# STEP 0: Use one file\n# - Put the environment, QNet, training loop, and inline checks in this one file\n# - When ready, run: python assignment.py\n# - Do not create env.py, qnet.py, train_dqn.py, tests/, or extra modules\n#\n# STEP 1: Build the environment\n# - State is an integer position from 0 to 4\n# - Actions are left=0 and right=1\n# - Reward is +1 when the agent reaches position 4\n# - Checkpoint: stepping right from position 3 ends episode with reward 1\n#\n# STEP 2: Build QNet\n# - Input can be one-hot state with shape (B, 5)\n# - Output has shape (B, 2), one value per action\n# - Checkpoint: qnet(states).shape == (B, 2)\n#\n# STEP 3: Compute Bellman targets\n# - chosen_q is the Q value for the action actually taken\n# - target is reward + gamma * max next_q for non-terminal states\n# - Use no_grad for next_q\n# - Checkpoint: target does not require grad\n#\n# STEP 4: Train\n# - Use epsilon-greedy exploration\n# - Store first 20 and last 20 episode rewards\n# - Checkpoint: later average reward is higher\n#\n# STEP 5: Add inline checks at the bottom\n# - Use assert statements in this same file instead of separate tests\n# - Check output shape, detached target, and reward improvement\n#\n# HINT 1: gather selects the Q value for the action column\n# HINT 2: terminal states should not include next_q\n# HINT 3: lower epsilon over time after the agent explores enough\n#\n# DONE: mark done when inline checks pass and reward improves",
   },
   {
     title: "RoPE causal self-attention on a char-level LM",
@@ -324,7 +324,7 @@ export const SEED_ASSIGNMENTS = [
       "Task 2: Build `CausalSelfAttention` (QKV proj, RoPE, softmax mask, out proj) and a 4-layer `TransformerBlock` stack.",
       "Task 3: Train char-LM with AdamW; plot train/val perplexity for 20k–50k steps — target val PPL clearly below untrained baseline.",
       "Task 4: Ablate RoPE → absolute learned positions (same params budget); plot val PPL vs steps.",
-      "Task 5: `eval.py` reports bits-per-char / perplexity on held-out chunk.",
+      "Task 5: add an eval helper in the same file that reports bits-per-char / perplexity on a held-out chunk.",
     ],
     stretch_goal:
       "Add GQA (fewer KV heads) using the GQA paper grouping and compare inference KV memory vs full MHA at equal quality.",
@@ -334,11 +334,11 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       `# rotate half dims: x1, x2 = x.chunk(2, dim=-1); return torch.cat((-x2, x1), dim=-1) * sin + x * cos`,
     verification: [
-      "pytest: RoPE output shape matches Q; rotating position m vs m+k changes dot product predictably",
+      "inline check: RoPE output shape matches Q; rotating position m vs m+k changes dot product predictably",
       "smoke: 32 batch, 128 seq, 100 steps — loss finite and decreasing",
       "eval: val perplexity < 2.0 bits/char on Shakespeare (trend; paper used large-scale pretrain)",
       "ablation: RoPE curve below learned-pos curve on same step budget",
-      "done when: eval.py PPL improves over epoch-0 and ablation shows RoPE wins",
+      "done when: the in-file eval helper shows PPL improves over epoch-0 and ablation shows RoPE wins",
     ],
   },
   {
@@ -358,7 +358,7 @@ export const SEED_ASSIGNMENTS = [
       "Task 2: Numerical test: GQA vs expanded MHA on T=32 — max abs diff < 1e-5.",
       "Task 3: Plug into 2-layer transformer; train 5k steps on synthetic next-token task (fixed vocab 1k).",
       "Task 4: Ablate n_kv_heads: 8 vs 2 vs 1 — plot val loss and peak KV memory (bytes).",
-      "Task 5: `eval.py` prints loss + estimated KV cache size per token.",
+      "Task 5: add an eval helper in the same file that prints loss + estimated KV cache size per token.",
     ],
     stretch_goal: "Load equal-param MHA checkpoint and up-convert to GQA via mean-grouping K/V weights (paper's recipe).",
     key_pytorch_concepts: ["view/reshape heads", "repeat_interleave", "scaled_dot_product_attention"],
@@ -367,7 +367,7 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       `k = k.repeat_interleave(self.n_heads // self.n_kv_heads, dim=1)  # after (B, n_kv, T, d)`,
     verification: [
-      "pytest: output shape (B,T,d_model); GQA matches reference on random input",
+      "inline check: output shape (B,T,d_model); GQA matches reference on random input",
       "smoke: 1k steps synthetic LM — loss down 20%+",
       "eval: n_kv_heads=2 within 5% loss of n_kv_heads=8 at same steps (paper trend)",
       "ablation: KV bytes scale ~ n_kv_heads / n_heads",
@@ -391,7 +391,7 @@ export const SEED_ASSIGNMENTS = [
       "Task 2: `grpo_advantages(rewards)` → (r - mean_g) / (std_g + eps) per group.",
       "Task 3: `grpo_loss` with PPO-style clip ε=0.2; train 2k prompts × 4 epochs.",
       "Task 4: Ablate group norm → raw rewards; plot solve-rate vs steps.",
-      "Task 5: `eval.py` reports pass@1 on held-out 100 problems.",
+      "Task 5: add an eval helper in the same file that reports pass@1 on held-out 100 problems.",
     ],
     stretch_goal: "Add KL penalty to frozen reference policy (DeepSeek-R1 recipe) and compare stability.",
     key_pytorch_concepts: ["torch.no_grad sampling", "logprob gather", "advantage normalization"],
@@ -400,7 +400,7 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       `adv = (r - r.mean(dim=1, keepdim=True)) / (r.std(dim=1, keepdim=True) + 1e-8)`,
     verification: [
-      "pytest: advantages mean≈0 std≈1 per group; loss finite with zero-variance guard",
+      "inline check: advantages mean≈0 std≈1 per group; loss finite with zero-variance guard",
       "smoke: 50 prompts, G=4, 20 update steps — no NaN",
       "eval: solve-rate improves vs random init (paper reports large gains at scale; you need positive trend)",
       "ablation: group-norm curve beats raw-reward curve",
@@ -424,7 +424,7 @@ export const SEED_ASSIGNMENTS = [
       "Task 2: `dpo_loss(π_θ, π_ref, chosen, rejected)` per Rafailov Eq. 5; mean over batch.",
       "Task 3: Train policy 3 epochs; track implicit reward margin on val set.",
       "Task 4: Ablate β ∈ {0.01, 0.1, 0.5} — plot chosen-vs-rejected logprob gap.",
-      "Task 5: `eval.py` reports % pairs where logp(chosen) > logp(rejected).",
+      "Task 5: add an eval helper in the same file that reports % pairs where logp(chosen) > logp(rejected).",
     ],
     stretch_goal: "Compare one epoch of DPO vs reward-weighted SFT on chosen-only — same compute budget.",
     key_pytorch_concepts: ["log_softmax gather", "stop-gradient ref", "Bradley-Terry loss"],
@@ -433,7 +433,7 @@ export const SEED_ASSIGNMENTS = [
     starter_code_hint:
       `logits = -(beta * (logp_w - logp_l - ref_w + ref_l)).sigmoid().log()`,
     verification: [
-      "pytest: DPO loss decreases when chosen logp artificially boosted on dummy batch",
+      "inline check: DPO loss decreases when chosen logp artificially boosted on dummy batch",
       "smoke: 64 pairs, 50 steps — loss finite",
       "eval: >65% pairs prefer chosen on val (paper-scale tasks hit higher; trend matters)",
       "ablation: β=0.1 beats β=0.01 on margin without collapse",

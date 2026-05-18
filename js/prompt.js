@@ -100,7 +100,10 @@ Do NOT include imports, class bodies, function bodies, or NotImplementedError.
 
 DO include:
 - Header: project name, paper, end goal, estimated time, compute assumptions.
-- STEP 0: folder layout and commands to run.
+- STEP 0: single-file layout and commands to run.
+- Use exactly ONE Python file for the whole assignment, usually "assignment.py".
+- If tests are needed, put them as functions/assertions at the bottom of the same file.
+- Do not ask the student to create train.py, eval.py, tests/, packages, or multiple modules.
 - STEP 1..N: one section per milestone, including names, tensor shapes, and
   exact checkpoint tests.
 - HINT LEVELS: tiny hint, stronger hint, solution direction, still as comments.
@@ -139,7 +142,7 @@ Return exactly this structure. No markdown, no preamble, nothing else:
         "Step 3: paper idea"
       ],
       "next_30_minutes": "The exact first action to take after opening Code",
-      "setup": "Dataset, compute needed, files to create, and first commands",
+      "setup": "Dataset, compute needed, the single file to use, and first commands",
       "tasks": [
         "Task 1: one concrete thing to build",
         "Task 2: next concrete thing to build"
@@ -164,7 +167,7 @@ Return exactly this structure. No markdown, no preamble, nothing else:
       "debug_hints": "Likely failure and how to diagnose it",
       "starter_code_hint": "Pseudocode or a pattern, not complete code",
       "verification": [
-        "pytest: exact assertion",
+        "inline check: exact assertion to put at the bottom of the same file",
         "smoke: tiny run details",
         "eval: metric or plot",
         "done when: one sentence defining success"

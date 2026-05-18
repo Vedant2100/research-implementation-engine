@@ -10,19 +10,17 @@ const BUILD_GUIDES = {
 # BUILD GUIDE: RoPE causal self-attention on a char-level LM
 # Paper: RoFormer — Rotary Position Embedding
 # Goal: 4-layer char LM on Tiny Shakespeare; val perplexity beats baseline
-# Run when done: pytest tests/  →  python train.py  →  python eval.py
+# Run when done: python assignment.py
 # ═══════════════════════════════════════════════════════════════════
 
-# ─── STEP 0 — Project layout ───────────────────────────────────────
-# Create:
-#   rope_lm/model.py      ← modules below
-#   rope_lm/train.py      ← training loop
-#   rope_lm/eval.py       ← perplexity on holdout
-#   tests/test_rope.py    ← shape / grad tests
+# ─── STEP 0 — Single-file layout ───────────────────────────────────
+# Use ONE file only: assignment.py
+# Put modules, training loop, eval helper, and inline assert checks in that file.
+# Do not create packages, tests/, train.py, or eval.py for this editor workflow.
 # Dataset: Tiny Shakespeare (~1MB text file). Char tokenizer, vocab < 256.
 
 # ─── STEP 1 — RotaryEmbedding (Task 1) ─────────────────────────────
-# In model.py, build class RotaryEmbedding(nn.Module):
+# In assignment.py, build class RotaryEmbedding(nn.Module):
 #   __init__(head_dim, max_seq_len=2048, base=10000.0)
 #     - assert head_dim % 2 == 0
 #     - precompute inv_freq; register_buffer cos/sin for positions 0..max_seq_len-1
@@ -32,7 +30,7 @@ const BUILD_GUIDES = {
 #   - q, k: (B, n_heads, T, head_dim)
 #   - rotate pairs of dims (half-split trick); return q_rot, k_rot same shape
 #
-# TEST (tests/test_rope.py):
+# INLINE CHECKS at the bottom of assignment.py:
 #   - output shapes match input
 #   - vector norm preserved per position
 #   - dot(q[m], k[n]) changes when you shift position index
@@ -47,7 +45,7 @@ const BUILD_GUIDES = {
 # class CharLM: embed + N blocks + lm_head → logits (B,T,vocab)
 
 # ─── STEP 3 — Train (Task 3) ───────────────────────────────────────
-# train.py: AdamW, cross-entropy on next char, seq_len=128, ~20k-50k steps
+# In the same file: AdamW, cross-entropy on next char, seq_len=128, ~20k-50k steps
 # Log train loss + val perplexity every N steps
 # SUCCESS TREND: val PPL clearly below epoch-0 random baseline
 
@@ -55,8 +53,9 @@ const BUILD_GUIDES = {
 # Same model width/depth but REPLACE RoPE with learned absolute nn.Embedding positions
 # Plot val PPL vs steps: RoPE curve should beat learned-pos (same step budget)
 
-# ─── STEP 5 — eval.py (Task 5) ─────────────────────────────────────
-# Load checkpoint; report bits-per-char or perplexity on held-out text chunk
+# ─── STEP 5 — Eval helper (Task 5) ─────────────────────────────────
+# In the same file, add a function that reports bits-per-char or perplexity
+# on a held-out text chunk
 # Print one number you can compare week-to-week
 
 # ─── STRETCH (optional) ──────────────────────────────────────────────
@@ -71,7 +70,8 @@ const BUILD_GUIDES = {
 # ═══════════════════════════════════════════════════════════════════
 
 # ─── STEP 0 — Setup ────────────────────────────────────────────────
-# gqa/attention.py, gqa/model.py, tests/test_gqa.py, train.py, eval.py
+# Use ONE file only: assignment.py
+# Put GQAAttention, the tiny model, inline checks, train loop, and eval printout in it.
 # Defaults: d_model=256, n_heads=8, n_kv_heads=2, head_dim=32
 
 # ─── STEP 1 — GQAAttention (Task 1) ────────────────────────────────
@@ -97,8 +97,8 @@ const BUILD_GUIDES = {
 # Train/eval with n_kv_heads in {8, 2, 1} — plot val loss + kv_cache_bytes()
 # EXPECT: n_kv_heads=2 within ~5% loss of 8; bytes scale ~ n_kv_heads/n_heads
 
-# ─── STEP 5 — eval.py (Task 5) ─────────────────────────────────────
-# Print val_loss and kv_bytes_per_token for current config
+# ─── STEP 5 — Eval printout (Task 5) ───────────────────────────────
+# In the same file, print val_loss and kv_bytes_per_token for current config
 
 `,
 
@@ -109,7 +109,8 @@ const BUILD_GUIDES = {
 # ═══════════════════════════════════════════════════════════════════
 
 # ─── STEP 0 — Setup ────────────────────────────────────────────────
-# grpo/policy.py, grpo/grpo.py, grpo/train.py, grpo/eval.py, tests/test_grpo.py
+# Use ONE file only: assignment.py
+# Put PolicyLM, GRPO helpers, inline checks, training loop, and eval in it.
 # ~500 prompts like "12+7=" ; rule reward +1 exact answer else 0; G=4 samples/prompt
 
 # ─── STEP 1 — Policy + sampling (Task 1) ───────────────────────────
@@ -133,8 +134,8 @@ const BUILD_GUIDES = {
 # Run with normalize_group=False (raw rewards as advantages)
 # Plot solve-rate vs steps — group norm curve should win
 
-# ─── STEP 5 — eval.py (Task 5) ─────────────────────────────────────
-# pass@1 on 100 held-out prompts (greedy decode, rule reward)
+# ─── STEP 5 — Eval helper (Task 5) ─────────────────────────────────
+# In the same file, compute pass@1 on 100 held-out prompts
 
 # ─── STRETCH ───────────────────────────────────────────────────────
 # Add KL to frozen reference policy; compare training stability
@@ -148,7 +149,8 @@ const BUILD_GUIDES = {
 # ═══════════════════════════════════════════════════════════════════
 
 # ─── STEP 0 — Setup ────────────────────────────────────────────────
-# dpo/model.py, dpo/loss.py, dpo/train.py, dpo/eval.py, tests/test_dpo.py
+# Use ONE file only: assignment.py
+# Put the model, loss, inline checks, training loop, and eval in it.
 # 2k pairs (prompt, chosen, rejected); truncate 128 tokens; β=0.1
 # reference = copy of init policy, all params frozen (requires_grad=False)
 
@@ -169,8 +171,8 @@ const BUILD_GUIDES = {
 # ─── STEP 4 — Ablation β (Task 4) ────────────────────────────────────
 # β in {0.01, 0.1, 0.5} — plot chosen-rejected logp gap; pick stable β
 
-# ─── STEP 5 — eval.py (Task 5) ─────────────────────────────────────
-# pair_accuracy = % where logp(chosen) > logp(rejected) on val set
+# ─── STEP 5 — Eval helper (Task 5) ─────────────────────────────────
+# In the same file, compute pair_accuracy on the validation set
 # DONE: beat init checkpoint (paper-scale uses higher %; you need upward trend)
 
 `,
