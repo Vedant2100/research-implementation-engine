@@ -10,6 +10,7 @@
 import { CONFIG, getProvider } from "../config/config.js";
 import { SYSTEM_PROMPT } from "./prompt.js";
 import { getApiKey } from "./storage.js";
+import { fetchArxivPapers, formatArxivForPrompt } from "./arxiv.js";
 
 export async function runResearchAgent(
   existingTitles = [],
@@ -24,7 +25,26 @@ export async function runResearchAgent(
   if (!areaId || !areaLabel) throw new Error("Pick a research area before running.");
 
   const provider = getProvider();
-  const userMessage = buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles);
+
+  let arxivBlock = "";
+  if (CONFIG.ENABLE_ARXIV) {
+    try {
+      onLog(`Fetching recent arXiv papers for ${areaLabel}...`, "search");
+      const papers = await fetchArxivPapers(areaId, 8);
+      arxivBlock = formatArxivForPrompt(papers);
+      onLog(`Got ${papers.length} arXiv abstracts (passed to model)`, "ok");
+    } catch (e) {
+      onLog(`arXiv fetch failed: ${e.message} (continuing without it)`, "err");
+    }
+  }
+
+  const userMessage = buildUserMessage(
+    existingTitles,
+    areaId,
+    areaLabel,
+    existingAssignmentTitles,
+    arxivBlock
+  );
 
   onLog(`Researching: ${areaLabel} via ${provider.label} (${provider.model})...`, "search");
 
@@ -165,7 +185,7 @@ function parseResponse(rawText, searchCount, onLog) {
   return { papers, assignments, searchCount };
 }
 
-function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles) {
+function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentTitles, arxivBlock) {
   const existingPapers =
     existingTitles.length > 0
       ? `Papers already in database — do NOT repeat:\n${existingTitles.join("\n")}`
@@ -176,16 +196,19 @@ function buildUserMessage(existingTitles, areaId, areaLabel, existingAssignmentT
       ? `Assignments already built — do NOT repeat these topics/titles:\n${existingAssignmentTitles.join("\n")}`
       : "No prior assignments in database.";
 
+  const arxivSection = arxivBlock
+    ? `\nRECENT ARXIV PAPERS FOR THIS AREA (fresh search, prefer these for your selection):\n${arxivBlock}\n`
+    : "";
+
   return `
 THIS RUN — FOCUS AREA: ${areaLabel}
 area id (use in JSON "area" field): ${areaId}
 
-Do deep research ONLY in this area using your knowledge of the literature. Find the
-best recent papers (2024-2026 if you can recall them; older landmarks are fine too)
-and design exactly ONE assignment that teaches the maximum depth (one end-to-end
-PyTorch project, not a survey). Include code_build_guide: comment-only steps (# lines),
-no class skeletons or NotImplementedError stubs.
-
+Pick the best papers from the arXiv list below (or use one you know is canonical for this
+area if the list misses it). Design exactly ONE end-to-end PyTorch assignment that
+teaches the maximum depth — not a survey. Include code_build_guide: comment-only
+steps (# lines), no class skeletons or NotImplementedError stubs.
+${arxivSection}
 ${existingPapers}
 
 ${existingAssigns}

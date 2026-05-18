@@ -11,7 +11,16 @@
 // Provider profiles — switch with CONFIG.PROVIDER below.
 export const PROVIDERS = {
   nvidia: {
-    label: "NVIDIA NIM (DeepSeek V4 Pro)",
+    label: "NVIDIA NIM (DeepSeek V4 Flash)",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    model: "deepseek-ai/deepseek-v4-flash",
+    keyHint: "nvapi-...",
+    keyDocsUrl: "https://build.nvidia.com/",
+    format: "openai",
+    keyPrefix: "nvapi-",
+  },
+  nvidiaPro: {
+    label: "NVIDIA NIM (DeepSeek V4 Pro — slow thinker)",
     baseUrl: "https://integrate.api.nvidia.com/v1",
     model: "deepseek-ai/deepseek-v4-pro",
     keyHint: "nvapi-...",
@@ -20,9 +29,9 @@ export const PROVIDERS = {
     keyPrefix: "nvapi-",
   },
   nvidiaQwen: {
-    label: "NVIDIA NIM (Qwen3 Thinking)",
+    label: "NVIDIA NIM (Qwen3 80B Instruct — fast)",
     baseUrl: "https://integrate.api.nvidia.com/v1",
-    model: "qwen/qwen3-next-80b-a3b-thinking",
+    model: "qwen/qwen3-next-80b-a3b-instruct",
     keyHint: "nvapi-...",
     keyDocsUrl: "https://build.nvidia.com/",
     format: "openai",
@@ -51,6 +60,11 @@ export const CONFIG = {
   API_KEY: "",
 
   MAX_TOKENS: 16000,
+
+  // arXiv tool: pre-fetches paper abstracts for the chosen area before calling the LLM.
+  // Free, no API key, much better than relying on the model's training cutoff for
+  // 2025-2026 papers. Adds ~1-2s per run.
+  ENABLE_ARXIV: true,
 
   ENABLE_WEB_SEARCH: false,
 
