@@ -753,6 +753,48 @@ body.workspace-open { overflow: hidden; }
   align-items: center;
   gap: 6px;
 }
+.workspace-code-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-colab {
+  color: var(--text);
+  border-color: color-mix(in srgb, #f9ab00 40%, var(--border));
+  background: color-mix(in srgb, #f9ab00 12%, var(--surface));
+}
+.btn-colab:hover {
+  border-color: #f9ab00;
+  background: color-mix(in srgb, #f9ab00 22%, var(--surface));
+}
+.btn-colab i {
+  color: #e37400;
+}
+:root[data-theme="dark"] .btn-colab i {
+  color: #f9ab00;
+}
+
+.workspace-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  max-width: min(520px, calc(100vw - 2rem));
+  padding: 12px 18px;
+  border-radius: var(--r);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.workspace-toast[hidden] {
+  display: none !important;
+}
+
 #workspace-monaco {
   flex: 1;
   min-height: 0;

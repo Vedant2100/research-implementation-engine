@@ -221,11 +221,18 @@
     <main class="workspace-code">
       <div class="workspace-code-toolbar">
         <span><i class="ti ti-code"></i> Build guide · auto-saves</span>
-        <button type="button" class="btn-ghost" id="workspace-reset-guide">Reset build guide</button>
+        <div class="workspace-code-actions">
+          <button type="button" class="btn-ghost btn-colab" id="workspace-colab" title="Download notebook and open Google Colab">
+            <i class="ti ti-brand-google"></i> Open in Colab
+          </button>
+          <button type="button" class="btn-ghost" id="workspace-reset-guide">Reset build guide</button>
+        </div>
       </div>
       <div class="monaco-mount" id="workspace-monaco"></div>
     </main>
   </div>
+
+  <div class="workspace-toast" id="workspace-toast" hidden role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
   <script>

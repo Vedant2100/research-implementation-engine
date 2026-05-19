@@ -8,9 +8,11 @@
 
 import { RESEARCH_AREAS } from "./prompt.js";
 import { assignmentToMarkdown, renderMarkdownHtml } from "./markdown.js";
+import { openInColab } from "./colab.js";
 
 let _workspaceEditor = null;
 let _workspaceTitle = null;
+let _workspaceAssignment = null;
 let _workspaceGetCode = null;
 let _workspaceSaveCode = null;
 let _workspaceClearCode = null;
@@ -156,6 +158,7 @@ export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getH
   document.getElementById("workspace-close")?.addEventListener("click", closeCodeWorkspace);
   document.getElementById("code-workspace-backdrop")?.addEventListener("click", closeCodeWorkspace);
   document.getElementById("workspace-reset-guide")?.addEventListener("click", _resetWorkspaceGuide);
+  document.getElementById("workspace-colab")?.addEventListener("click", _openWorkspaceInColab);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && _isWorkspaceOpen()) closeCodeWorkspace();
@@ -170,6 +173,7 @@ export function openCodeWorkspace(assignment) {
   if (!ws || !briefEl) return;
 
   _workspaceTitle = assignment.title;
+  _workspaceAssignment = assignment;
   titleEl.textContent = assignment.title;
   briefEl.innerHTML = renderMarkdownHtml(assignmentToMarkdown(assignment));
 
@@ -192,6 +196,31 @@ export function closeCodeWorkspace() {
   if (backdrop) backdrop.hidden = true;
   document.body.classList.remove("workspace-open");
   _workspaceTitle = null;
+  _workspaceAssignment = null;
+}
+
+function _openWorkspaceInColab() {
+  if (!_workspaceEditor || !_workspaceTitle) return;
+  const code = _workspaceEditor.getValue();
+  const { filename } = openInColab({
+    title: _workspaceTitle,
+    paperRef: _workspaceAssignment?.paper_ref || "",
+    code,
+  });
+  _showWorkspaceToast(
+    `Downloaded ${filename}. In the Colab tab: File → Upload notebook, or drag the file onto the page. Then Runtime → Run all.`
+  );
+}
+
+function _showWorkspaceToast(message) {
+  const el = document.getElementById("workspace-toast");
+  if (!el) return;
+  el.textContent = message;
+  el.hidden = false;
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => {
+    el.hidden = true;
+  }, 12000);
 }
 
 function _isWorkspaceOpen() {
