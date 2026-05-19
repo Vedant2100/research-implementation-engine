@@ -7,7 +7,7 @@
  */
 
 import { RESEARCH_AREAS } from "./prompt.js";
-import { assignmentToMarkdown, renderMarkdownHtml } from "./markdown.js";
+import { assignmentProblemMarkdown, renderMarkdownHtml } from "./markdown.js";
 import { openInColab } from "./colab.js";
 
 let _workspaceEditor = null;
@@ -175,7 +175,8 @@ export function openCodeWorkspace(assignment) {
   _workspaceTitle = assignment.title;
   _workspaceAssignment = assignment;
   titleEl.textContent = assignment.title;
-  briefEl.innerHTML = renderMarkdownHtml(assignmentToMarkdown(assignment));
+  briefEl.innerHTML = renderMarkdownHtml(assignmentProblemMarkdown(assignment));
+  briefEl.scrollTop = 0;
 
   ws.hidden = false;
   backdrop.hidden = false;

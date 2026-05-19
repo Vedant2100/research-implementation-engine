@@ -681,7 +681,11 @@ body.workspace-open { overflow: hidden; }
   z-index: 210;
   display: grid;
   grid-template-columns: minmax(320px, 42%) minmax(0, 58%);
+  grid-template-rows: 1fr;
   gap: 0;
+  height: calc(100dvh - 24px);
+  max-height: calc(100dvh - 24px);
+  min-height: 0;
   border: 1px solid var(--border-2);
   border-radius: var(--r-lg);
   overflow: hidden;
@@ -693,6 +697,9 @@ body.workspace-open { overflow: hidden; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg);
 }
@@ -725,8 +732,12 @@ body.workspace-open { overflow: hidden; }
 }
 
 .workspace-brief-body {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px 22px 28px;
 }
 
@@ -734,6 +745,9 @@ body.workspace-open { overflow: hidden; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   background: var(--surface-2);
 }
 .workspace-code-toolbar {
@@ -801,14 +815,15 @@ body.workspace-open { overflow: hidden; }
   width: 100%;
 }
 
-/* Markdown brief (prose) */
-.prose {
+/* Markdown brief (prose) — workspace problem panel */
+.workspace-brief-body.prose {
   font-size: 14px;
   line-height: 1.7;
   color: var(--text-2);
 }
-.prose > *:first-child { margin-top: 0; }
-.prose h1 {
+.workspace-brief-body.prose > *:first-child { margin-top: 0; }
+.workspace-brief-body.prose > *:last-child { margin-bottom: 0; }
+.workspace-brief-body.prose h1 {
   font-size: 1.35rem;
   font-weight: 700;
   color: var(--text);
@@ -817,7 +832,7 @@ body.workspace-open { overflow: hidden; }
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
 }
-.prose h2 {
+.workspace-brief-body.prose h2 {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -825,34 +840,46 @@ body.workspace-open { overflow: hidden; }
   color: var(--text-3);
   margin: 1.75rem 0 0.65rem;
 }
-.prose h3 {
+.workspace-brief-body.prose h3 {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
   margin: 1.25rem 0 0.5rem;
 }
-.prose p { margin: 0 0 0.85rem; }
-.prose strong { color: var(--text); font-weight: 600; }
-.prose em { color: var(--text-2); }
-.prose ul,
-.prose ol {
+.workspace-brief-body.prose p {
+  margin: 0 0 0.85rem;
+  color: var(--text-2);
+}
+.workspace-brief-body.prose p:first-of-type {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.workspace-brief-body.prose strong { color: var(--text); font-weight: 600; }
+.workspace-brief-body.prose em {
+  color: var(--text-2);
+  font-style: italic;
+}
+.workspace-brief-body.prose ul,
+.workspace-brief-body.prose ol {
   margin: 0 0 1rem;
   padding-left: 1.35rem;
 }
-.prose li {
-  margin-bottom: 0.45rem;
+.workspace-brief-body.prose li {
+  margin-bottom: 0.5rem;
+  color: var(--text-2);
 }
-.prose li::marker { color: var(--accent); }
-.prose blockquote {
-  margin: 0.75rem 0 1rem;
+.workspace-brief-body.prose li::marker { color: var(--accent); }
+.workspace-brief-body.prose blockquote {
+  margin: 0.5rem 0 1rem;
   padding: 10px 14px;
   border-left: 3px solid var(--accent);
   background: var(--accent-soft);
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
   color: var(--text);
 }
-.prose blockquote p { margin: 0; }
-.prose code {
+.workspace-brief-body.prose blockquote p { margin: 0; }
+.workspace-brief-body.prose code {
   font-family: var(--font-mono);
   font-size: 0.88em;
   padding: 2px 6px;
@@ -861,34 +888,20 @@ body.workspace-open { overflow: hidden; }
   border: 1px solid var(--border);
   color: var(--accent-text);
 }
-.prose table.md-table,
-.prose table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0 0 1.25rem;
-  font-size: 13px;
-}
-.prose th,
-.prose td {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  text-align: left;
-}
-.prose th {
-  background: var(--surface-2);
-  font-weight: 600;
-  color: var(--text);
-}
-.prose tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--surface-2) 50%, transparent);
+.workspace-brief-body.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.25rem 0;
 }
 
 @media (max-width: 900px) {
   .code-workspace {
     inset: 0;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(200px, 38%) minmax(0, 62%);
+    grid-template-rows: minmax(0, 38%) minmax(0, 62%);
   }
   .workspace-brief {
     border-right: none;
