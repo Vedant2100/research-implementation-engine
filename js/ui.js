@@ -176,11 +176,14 @@ export function openCodeWorkspace(assignment) {
   _workspaceAssignment = assignment;
   titleEl.textContent = assignment.title;
   briefEl.innerHTML = renderMarkdownHtml(assignmentProblemMarkdown(assignment));
-  briefEl.scrollTop = 0;
 
   ws.hidden = false;
   backdrop.hidden = false;
   document.body.classList.add("workspace-open");
+
+  requestAnimationFrame(() => {
+    briefEl.scrollTop = 0;
+  });
 
   _ensureWorkspaceEditor(() => {
     _workspaceEditor.setValue(_workspaceGetCode(_workspaceTitle));

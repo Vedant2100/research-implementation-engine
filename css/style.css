@@ -681,7 +681,7 @@ body.workspace-open { overflow: hidden; }
   z-index: 210;
   display: grid;
   grid-template-columns: minmax(320px, 42%) minmax(0, 58%);
-  grid-template-rows: 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 0;
   height: calc(100dvh - 24px);
   max-height: calc(100dvh - 24px);
@@ -693,12 +693,19 @@ body.workspace-open { overflow: hidden; }
   background: var(--surface);
 }
 
+.code-workspace > .workspace-brief,
+.code-workspace > .workspace-code {
+  min-height: 0;
+  max-height: 100%;
+}
+
 .workspace-brief {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   height: 100%;
+  max-height: 100%;
   overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg);
@@ -731,14 +738,15 @@ body.workspace-open { overflow: hidden; }
   margin: 0;
 }
 
-.workspace-brief-body {
-  flex: 1 1 auto;
+#workspace-brief.workspace-brief-body {
   min-height: 0;
+  max-height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 20px 22px 28px;
+  touch-action: pan-y;
 }
 
 .workspace-code {
@@ -833,12 +841,14 @@ body.workspace-open { overflow: hidden; }
   border-bottom: 1px solid var(--border);
 }
 .workspace-brief-body.prose h2 {
-  font-size: 0.72rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-3);
-  margin: 1.75rem 0 0.65rem;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 1.5rem 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
 }
 .workspace-brief-body.prose h3 {
   font-size: 1rem;
