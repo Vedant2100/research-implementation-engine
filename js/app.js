@@ -75,11 +75,22 @@ function applyProviderHints() {
   }
 }
 
+// ─── Theme ─────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const root = document.documentElement;
+  const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  root.setAttribute("data-theme", next);
+  try {
+    localStorage.setItem("research_engine_theme", next);
+  } catch (_) {}
+}
+
 // ─── Events ────────────────────────────────────────────────────────────────
 function wireEvents() {
   document.getElementById("run-btn").addEventListener("click", onRun);
   document.getElementById("clear-btn").addEventListener("click", onClear);
   document.getElementById("settings-btn").addEventListener("click", () => toggleSettings(true));
+  document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
   document.getElementById("settings-close").addEventListener("click", () => toggleSettings(false));
   const altClose = document.getElementById("settings-close-alt");
   if (altClose) altClose.addEventListener("click", () => toggleSettings(false));
@@ -99,7 +110,8 @@ function wireEvents() {
     saveCode,
     setStatus,
     clearCode,
-    getBuildGuide
+    getBuildGuide,
+    (title) => db.assignments.find((a) => a.title === title)
   );
 }
 

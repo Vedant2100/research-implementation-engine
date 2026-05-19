@@ -7,6 +7,14 @@
  */
 
 import { RESEARCH_AREAS } from "./prompt.js";
+import { assignmentToMarkdown, renderMarkdownHtml } from "./markdown.js";
+
+let _workspaceEditor = null;
+let _workspaceTitle = null;
+let _workspaceGetCode = null;
+let _workspaceSaveCode = null;
+let _workspaceClearCode = null;
+let _workspaceGetAssignment = null;
 
 const AREA_COLOR = Object.fromEntries(RESEARCH_AREAS.map((a) => [a.id, a.color]));
 
@@ -111,18 +119,17 @@ function assignmentCard(a, status = "todo") {
         ${actionBtnHtml}
       </div>
     </div>
-    <div class="editor-wrap" style="display:none;">
-      <div class="editor-toolbar">
-        <button type="button" class="btn-ghost reset-harness-btn">Reset build guide</button>
-      </div>
-      <div class="monaco-mount"></div>
-    </div>
   </div>
 </div>`;
 }
 
-// ─── Editor panels ─────────────────────────────────────────────────────────
-export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getHarness) {
+// ─── Code workspace (full-screen, brief | editor) ───────────────────────────
+export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getHarness, getAssignment) {
+  _workspaceGetCode = getCode;
+  _workspaceSaveCode = saveCode;
+  _workspaceClearCode = clearCode;
+  _workspaceGetAssignment = getAssignment;
+
   const container = document.getElementById("assignments-container");
   container.addEventListener("click", (e) => {
     const card = e.target.closest(".assignment-card");
@@ -130,24 +137,9 @@ export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getH
     const title = card.dataset.title;
 
     if (e.target.closest(".code-toggle-btn")) {
-      const wrap = card.querySelector(".editor-wrap");
-      const opening = wrap.style.display === "none";
-      wrap.style.display = opening ? "block" : "none";
-      card.classList.toggle("code-open", opening);
-      const label = card.querySelector(".code-toggle-btn span");
-      if (label) label.textContent = opening ? "Hide code" : "Code";
-      if (opening && !wrap.dataset.initialized) {
-        wrap.dataset.initialized = "1";
-        _initMonaco(wrap.querySelector(".monaco-mount"), title, getCode, saveCode);
-      } else if (opening && wrap.querySelector(".monaco-mount")._editor) {
-        wrap.querySelector(".monaco-mount")._editor.layout();
-      }
-    }
-
-    if (e.target.closest(".reset-harness-btn")) {
-      clearCode(title);
-      const mount = card.querySelector(".monaco-mount");
-      if (mount._editor) mount._editor.setValue(getHarness(title));
+      const assignment = getAssignment?.(title);
+      if (assignment) openCodeWorkspace(assignment);
+      return;
     }
 
     if (e.target.closest(".mark-done-btn")) {
@@ -160,28 +152,104 @@ export function attachEditorPanels(getCode, saveCode, setStatus, clearCode, getH
       _applyStatus(card, "todo");
     }
   });
+
+  document.getElementById("workspace-close")?.addEventListener("click", closeCodeWorkspace);
+  document.getElementById("code-workspace-backdrop")?.addEventListener("click", closeCodeWorkspace);
+  document.getElementById("workspace-reset-guide")?.addEventListener("click", _resetWorkspaceGuide);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && _isWorkspaceOpen()) closeCodeWorkspace();
+  });
 }
 
-function _initMonaco(mountEl, title, getCode, saveCode) {
-  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+export function openCodeWorkspace(assignment) {
+  const ws = document.getElementById("code-workspace");
+  const backdrop = document.getElementById("code-workspace-backdrop");
+  const briefEl = document.getElementById("workspace-brief");
+  const titleEl = document.getElementById("workspace-title");
+  if (!ws || !briefEl) return;
+
+  _workspaceTitle = assignment.title;
+  titleEl.textContent = assignment.title;
+  briefEl.innerHTML = renderMarkdownHtml(assignmentToMarkdown(assignment));
+
+  ws.hidden = false;
+  backdrop.hidden = false;
+  document.body.classList.add("workspace-open");
+
+  _ensureWorkspaceEditor(() => {
+    _workspaceEditor.setValue(_workspaceGetCode(_workspaceTitle));
+    _workspaceEditor.layout();
+    _workspaceEditor.focus();
+  });
+}
+
+export function closeCodeWorkspace() {
+  const ws = document.getElementById("code-workspace");
+  const backdrop = document.getElementById("code-workspace-backdrop");
+  if (!ws) return;
+  ws.hidden = true;
+  if (backdrop) backdrop.hidden = true;
+  document.body.classList.remove("workspace-open");
+  _workspaceTitle = null;
+}
+
+function _isWorkspaceOpen() {
+  const ws = document.getElementById("code-workspace");
+  return ws && !ws.hidden;
+}
+
+function _resetWorkspaceGuide() {
+  if (!_workspaceTitle || !_workspaceClearCode) return;
+  _workspaceClearCode(_workspaceTitle);
+  if (_workspaceEditor && _workspaceGetCode) {
+    _workspaceEditor.setValue(_workspaceGetCode(_workspaceTitle));
+  }
+}
+
+function _ensureWorkspaceEditor(onReady) {
+  const mountEl = document.getElementById("workspace-monaco");
+  if (!mountEl) return;
+
+  if (_workspaceEditor) {
+    onReady?.();
+    return;
+  }
+
+  const themeFor = () =>
+    document.documentElement.getAttribute("data-theme") === "dark" ? "vs-dark" : "vs";
+
   window.monacoReady.then(() => {
-    const editor = monaco.editor.create(mountEl, {
-      value: getCode(title),
+    _workspaceEditor = monaco.editor.create(mountEl, {
+      value: "",
       language: "python",
-      theme: dark ? "vs-dark" : "vs",
-      minimap: { enabled: false },
-      fontSize: 13,
+      theme: themeFor(),
+      minimap: { enabled: true },
+      fontSize: 14,
       lineNumbers: "on",
       scrollBeyondLastLine: false,
       automaticLayout: true,
-      padding: { top: 10, bottom: 10 },
+      padding: { top: 12, bottom: 12 },
     });
+
     let t;
-    mountEl._editor = editor;
-    editor.onDidChangeModelContent(() => {
+    _workspaceEditor.onDidChangeModelContent(() => {
+      if (!_workspaceTitle) return;
       clearTimeout(t);
-      t = setTimeout(() => saveCode(title, editor.getValue()), 500);
+      t = setTimeout(() => _workspaceSaveCode(_workspaceTitle, _workspaceEditor.getValue()), 500);
     });
+
+    if (!window._workspaceThemeObserver) {
+      window._workspaceThemeObserver = new MutationObserver(() => {
+        monaco.editor.setTheme(themeFor());
+      });
+      window._workspaceThemeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+    }
+
+    onReady?.();
   });
 }
 

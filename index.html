@@ -6,6 +6,20 @@
   <title>PyTorch Research Engine</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("research_engine_theme");
+        var dark = saved
+          ? saved === "dark"
+          : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      } catch (_) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
 </head>
 <body>
 
@@ -79,9 +93,15 @@
           <p>Agentic paper search · one deep PyTorch assignment per run</p>
         </div>
       </div>
-      <button class="icon-btn header-settings" id="settings-btn" aria-label="Open settings" title="Settings">
-        <i class="ti ti-settings"></i>
-      </button>
+      <div class="header-actions">
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <i class="ti ti-moon"></i>
+          <i class="ti ti-sun"></i>
+        </button>
+        <button class="icon-btn header-settings" id="settings-btn" aria-label="Open settings" title="Settings">
+          <i class="ti ti-settings"></i>
+        </button>
+      </div>
     </header>
 
     <!-- Legacy element kept for JS compatibility; visually hidden. -->
@@ -181,6 +201,30 @@
       <span>Local-first · data stays in your browser</span>
     </footer>
 
+  </div>
+
+  <!-- Full-screen code workspace: brief (markdown) | editor -->
+  <div class="code-workspace-backdrop" id="code-workspace-backdrop" hidden aria-hidden="true"></div>
+  <div class="code-workspace" id="code-workspace" hidden role="dialog" aria-modal="true" aria-labelledby="workspace-title">
+    <aside class="workspace-brief">
+      <header class="workspace-brief-head">
+        <div>
+          <p class="workspace-kicker">Assignment brief</p>
+          <h2 id="workspace-title"></h2>
+        </div>
+        <button type="button" class="icon-btn" id="workspace-close" aria-label="Close code workspace">
+          <i class="ti ti-x"></i>
+        </button>
+      </header>
+      <div class="workspace-brief-body prose" id="workspace-brief"></div>
+    </aside>
+    <main class="workspace-code">
+      <div class="workspace-code-toolbar">
+        <span><i class="ti ti-code"></i> Build guide · auto-saves</span>
+        <button type="button" class="btn-ghost" id="workspace-reset-guide">Reset build guide</button>
+      </div>
+      <div class="monaco-mount" id="workspace-monaco"></div>
+    </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
