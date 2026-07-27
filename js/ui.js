@@ -405,6 +405,80 @@ export function toggleSettings(show) {
   document.getElementById("settings-panel").style.display = show ? "block" : "none";
 }
 
+export function showMode(mode) {
+  const research = document.getElementById("research-mode");
+  const interview = document.getElementById("interview-mode");
+  if (!research || !interview) return;
+  const isInterview = mode === "interview";
+  research.hidden = isInterview;
+  interview.hidden = !isInterview;
+  document.querySelectorAll(".mode-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === mode));
+}
+
+export function renderInterviewHome(history = [], stats = { attempts: 0, average: 0, best: 0 }) {
+  const launch = document.getElementById("interview-launch-card");
+  const session = document.getElementById("interview-session");
+  const review = document.getElementById("interview-review");
+  if (launch) launch.hidden = false;
+  if (session) session.hidden = true;
+  if (review) review.hidden = true;
+  renderInterviewStats(stats);
+  renderInterviewHistory(history);
+}
+
+export function renderInterviewStats(stats = { attempts: 0, average: 0, best: 0 }) {
+  const statsEl = document.getElementById("interview-stats");
+  if (statsEl) statsEl.innerHTML = `<div><strong>${stats.attempts}</strong><span>attempts</span></div><div><strong>${stats.average || "—"}</strong><span>average / 100</span></div><div><strong>${stats.best || "—"}</strong><span>best / 100</span></div>`;
+}
+
+export function renderInterviewSession(session, round) {
+  document.getElementById("interview-launch-card").hidden = true;
+  document.getElementById("interview-session").hidden = false;
+  document.getElementById("interview-review").hidden = true;
+  const p = session.prompt;
+  setText("interview-session-round", `${round.label} · ${round.duration} minutes`);
+  setText("interview-session-title", p.title);
+  setText("interview-context", p.context);
+  setText("interview-prompt", p.prompt);
+  document.getElementById("interview-deliverables").innerHTML = p.deliverables.map((item) => `<li>${esc(item)}</li>`).join("");
+  document.getElementById("interview-followups").innerHTML = p.followups.map((item) => `<li>${esc(item)}</li>`).join("");
+  document.getElementById("interview-response").value = "";
+  ["check-clarify", "check-tests", "check-tradeoffs"].forEach((id) => { document.getElementById(id).checked = false; });
+  setText("interview-timer", `${String(round.duration).padStart(2, "0")}:00`);
+  document.getElementById("interview-response").focus();
+}
+
+export function renderInterviewReview(session) {
+  document.getElementById("interview-session").hidden = true;
+  document.getElementById("interview-review").hidden = false;
+  setText("review-title", session.prompt.title);
+  const labels = { correctness: "Correctness", reasoning: "ML / systems reasoning", testing: "Testing and measurement", performance: "Performance and tradeoffs", communication: "Communication" };
+  const rubric = document.getElementById("review-rubric");
+  rubric.innerHTML = Object.entries(session.prompt.rubric).map(([key, description]) => `<label class="rubric-row"><span><strong>${labels[key] || key}</strong><small>${esc(description)}</small></span><select data-review-score="${key}" aria-label="${labels[key] || key} score"><option value="1">1 · missing</option><option value="2">2 · weak</option><option value="3" selected>3 · solid</option><option value="4">4 · strong</option><option value="5">5 · excellent</option></select></label>`).join("");
+  rubric.querySelectorAll("select").forEach((select) => select.addEventListener("change", updateReviewTotal));
+  document.getElementById("save-interview-btn").disabled = false;
+  document.getElementById("save-interview-btn").textContent = "Save review";
+  document.getElementById("interview-review-notes").value = "";
+  updateReviewTotal();
+}
+
+function updateReviewTotal() {
+  const scores = [...document.querySelectorAll("[data-review-score]")].map((el) => Number(el.value));
+  if (!scores.length) return;
+  setText("review-total", `${Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length * 20)} / 100`);
+}
+
+export function renderInterviewHistory(history = []) {
+  const container = document.getElementById("interview-history");
+  if (!container) return;
+  if (!history.length) {
+    container.innerHTML = `<div class="history-empty"><i class="ti ti-chart-dots"></i><span>Your first attempt will appear here.</span></div>`;
+    return;
+  }
+  const labels = { ml_coding: "ML coding", debugging: "Debugging", systems: "Systems design", paper_defense: "Paper defense" };
+  container.innerHTML = history.slice(0, 8).map((attempt) => `<div class="history-row"><div><strong>${esc(attempt.title)}</strong><span>${esc(labels[attempt.round] || attempt.round)} · ${new Date(attempt.completedAt).toLocaleDateString()}</span></div><span class="history-score">${attempt.total ? `${attempt.total}/100` : "Not scored"}</span></div>`).join("");
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 function setText(id, val) {
   const el = document.getElementById(id);

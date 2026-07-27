@@ -92,6 +92,14 @@
         </div>
       </div>
       <div class="header-actions">
+        <div class="mode-switch" role="group" aria-label="Practice mode">
+          <button type="button" class="mode-btn active" data-mode="research" id="research-mode-btn">
+            <i class="ti ti-telescope"></i> Research
+          </button>
+          <button type="button" class="mode-btn" data-mode="interview" id="interview-mode-btn">
+            <i class="ti ti-microphone-2"></i> Interview
+          </button>
+        </div>
         <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
           <i class="ti ti-moon"></i>
           <i class="ti ti-sun"></i>
@@ -101,6 +109,104 @@
         </button>
       </div>
     </header>
+
+    <!-- Interview mode: bounded, timed practice separate from research mode. -->
+    <section id="interview-mode" class="interview-mode" hidden>
+      <div class="interview-hero">
+        <div>
+          <p class="eyebrow">Frontier interview practice</p>
+          <h2>Practice the loop, not just the implementation.</h2>
+          <p>Timed prompts for ML coding, debugging, systems design, and paper defense. Finish by scoring the evidence an interviewer would actually see.</p>
+        </div>
+        <div class="interview-stats" id="interview-stats"></div>
+      </div>
+
+      <section class="interview-launch-card" id="interview-launch-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Start a session</p>
+            <h3>Choose the pressure you want to train</h3>
+          </div>
+          <span class="interview-note"><i class="ti ti-device-laptop"></i> Offline · no API calls</span>
+        </div>
+        <div class="interview-controls">
+          <label class="interview-control">
+            <span>Target role</span>
+            <select id="interview-track-select"></select>
+          </label>
+          <label class="interview-control">
+            <span>Round</span>
+            <select id="interview-round-select"></select>
+          </label>
+          <button type="button" class="btn-primary" id="start-interview-btn"><i class="ti ti-player-play-filled"></i> Start timed session</button>
+        </div>
+        <div class="round-explain" id="round-explain"></div>
+      </section>
+
+      <section class="interview-session" id="interview-session" hidden>
+        <div class="interview-session-head">
+          <div>
+            <p class="eyebrow" id="interview-session-round">ML coding</p>
+            <h2 id="interview-session-title"></h2>
+          </div>
+          <div class="interview-session-actions">
+            <div class="interview-timer" id="interview-timer">45:00</div>
+            <button type="button" class="btn-ghost" id="end-interview-btn">End & review</button>
+          </div>
+        </div>
+        <div class="interview-grid">
+          <article class="interview-prompt-card">
+            <div class="prompt-label">Prompt</div>
+            <p id="interview-context"></p>
+            <p id="interview-prompt"></p>
+            <div class="prompt-label">Deliverables</div>
+            <ul class="interview-list" id="interview-deliverables"></ul>
+            <div class="prompt-label">Interviewer follow-ups</div>
+            <ul class="interview-list followups" id="interview-followups"></ul>
+          </article>
+          <article class="interview-work-card">
+            <div class="workspace-code-toolbar interview-toolbar">
+              <span><i class="ti ti-edit"></i> Your working notes / solution</span>
+              <span class="interview-save-state" id="interview-save-state">Autosaves locally</span>
+            </div>
+            <textarea id="interview-response" spellcheck="false" placeholder="Talk through your assumptions, then write the solution or design. Treat this like a shared screen interview."></textarea>
+            <div class="interview-checks">
+              <label><input type="checkbox" id="check-clarify"> I clarified assumptions</label>
+              <label><input type="checkbox" id="check-tests"> I stated tests / measurements</label>
+              <label><input type="checkbox" id="check-tradeoffs"> I discussed tradeoffs and failure modes</label>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="interview-review" id="interview-review" hidden>
+        <div class="interview-session-head">
+          <div>
+            <p class="eyebrow">Session review</p>
+            <h2 id="review-title"></h2>
+          </div>
+          <button type="button" class="btn-ghost" id="new-interview-btn">New session</button>
+        </div>
+        <p class="review-intro">Score the evidence you produced, not your intentions. A strong answer is correct, testable, performance-aware, and easy to follow.</p>
+        <div class="review-rubric" id="review-rubric"></div>
+        <label class="review-notes-label" for="interview-review-notes">What would you improve next time?</label>
+        <textarea id="interview-review-notes" class="review-notes" placeholder="Write the one or two changes that would most improve your next attempt."></textarea>
+        <div class="review-footer">
+          <span id="review-total" class="review-total"></span>
+          <button type="button" class="btn-primary" id="save-interview-btn">Save review</button>
+        </div>
+      </section>
+
+      <section class="interview-history-card">
+        <div class="section-heading">
+          <div><p class="eyebrow">Progress</p><h3>Recent attempts</h3></div>
+          <span class="interview-note">Your history stays in this browser</span>
+        </div>
+        <div id="interview-history"></div>
+      </section>
+    </section>
+
+    <div id="research-mode">
 
     <!-- Legacy element kept for JS compatibility; visually hidden. -->
     <div class="area-badges" id="area-badges" hidden></div>
@@ -198,6 +304,8 @@
     <footer class="app-footer">
       <span>Local-first · data stays in your browser</span>
     </footer>
+
+    </div>
 
   </div>
 

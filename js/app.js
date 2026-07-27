@@ -37,11 +37,30 @@ import { RESEARCH_AREAS, RUN_AREAS, getAreaById } from "./prompt.js";
 import { getProvider } from "../config/config.js";
 import { getCode, saveCode, getStatus, setStatus, clearCode } from "./code-store.js";
 import { getBuildGuide } from "./build-guides.js";
+import {
+  INTERVIEW_TRACKS,
+  INTERVIEW_ROUNDS,
+  getInterviewPrompt,
+  loadInterviewHistory,
+  saveInterviewAttempt,
+  getInterviewStats,
+} from "./interview.js";
+import {
+  renderInterviewHome,
+  renderInterviewSession,
+  renderInterviewReview,
+  renderInterviewHistory,
+  renderInterviewStats,
+  showMode,
+} from "./ui.js";
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let db = loadDB();
 let currentFilter = "all";
 let studentProfile = getStudentProfile();
+let interviewHistory = loadInterviewHistory();
+let interviewSession = null;
+let interviewTimer = null;
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
@@ -55,6 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
   prefillApiKey();
   prefillStudentProfile();
   applyProviderHints();
+  setupInterviewMode();
   const seeded = consumeSeedNotice();
   if (seeded > 0) {
     log(`Loaded ${seeded} starter learning items.`, "ok");
@@ -101,6 +121,10 @@ function wireEvents() {
   document.getElementById("save-key-btn").addEventListener("click", onSaveKey);
   document.getElementById("export-btn").addEventListener("click", onExport);
 
+  document.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showMode(btn.dataset.mode));
+  });
+
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
@@ -113,6 +137,141 @@ function wireEvents() {
     getBuildGuide,
     (title) => db.assignments.find((a) => a.title === title)
   );
+
+  document.getElementById("start-interview-btn")?.addEventListener("click", startInterview);
+  document.getElementById("end-interview-btn")?.addEventListener("click", endInterview);
+  document.getElementById("new-interview-btn")?.addEventListener("click", resetInterview);
+  document.getElementById("save-interview-btn")?.addEventListener("click", saveInterviewReview);
+  document.getElementById("interview-response")?.addEventListener("input", () => {
+    if (!interviewSession) return;
+    interviewSession.response = document.getElementById("interview-response").value;
+    interviewSession.checks = readInterviewChecks();
+    document.getElementById("interview-save-state").textContent = "Saved locally";
+  });
+}
+
+// ─── Interview mode ───────────────────────────────────────────────────────
+function setupInterviewMode() {
+  const trackSelect = document.getElementById("interview-track-select");
+  const roundSelect = document.getElementById("interview-round-select");
+  if (!trackSelect || !roundSelect) return;
+  INTERVIEW_TRACKS.forEach((track) => {
+    const option = document.createElement("option");
+    option.value = track.id;
+    option.textContent = track.label;
+    trackSelect.appendChild(option);
+  });
+  INTERVIEW_ROUNDS.forEach((round) => {
+    const option = document.createElement("option");
+    option.value = round.id;
+    option.textContent = `${round.label} · ${round.duration} min`;
+    roundSelect.appendChild(option);
+  });
+  trackSelect.value = "research_engineer";
+  roundSelect.value = "ml_coding";
+  updateRoundExplain();
+  roundSelect.addEventListener("change", updateRoundExplain);
+  interviewHistory = loadInterviewHistory();
+  renderInterviewHome(interviewHistory, getInterviewStats(interviewHistory));
+}
+
+function updateRoundExplain() {
+  const round = INTERVIEW_ROUNDS.find((r) => r.id === document.getElementById("interview-round-select")?.value);
+  const explain = document.getElementById("round-explain");
+  if (!round || !explain) return;
+  const descriptions = {
+    ml_coding: "Implement or reason through an ML primitive while narrating shapes, tests, and complexity.",
+    debugging: "Diagnose a training or systems failure using measurements before proposing fixes.",
+    systems: "Clarify requirements, design the system, estimate scale, and defend tradeoffs.",
+    paper_defense: "Summarize a claim, challenge the evidence, and propose a falsifiable experiment.",
+  };
+  explain.textContent = descriptions[round.id];
+}
+
+function startInterview() {
+  const trackId = document.getElementById("interview-track-select").value;
+  const roundId = document.getElementById("interview-round-select").value;
+  const recentIds = interviewHistory.slice(0, 5).map((a) => a.promptId);
+  const prompt = getInterviewPrompt(trackId, roundId, recentIds);
+  const round = INTERVIEW_ROUNDS.find((r) => r.id === prompt.round) || INTERVIEW_ROUNDS[0];
+  interviewSession = {
+    prompt,
+    trackId,
+    startedAt: Date.now(),
+    deadline: Date.now() + round.duration * 60 * 1000,
+    response: "",
+    checks: { clarify: false, tests: false, tradeoffs: false },
+  };
+  renderInterviewSession(interviewSession, round);
+  clearInterval(interviewTimer);
+  interviewTimer = setInterval(updateInterviewTimer, 250);
+}
+
+function updateInterviewTimer() {
+  if (!interviewSession) return;
+  const remaining = Math.max(0, interviewSession.deadline - Date.now());
+  const timer = document.getElementById("interview-timer");
+  if (timer) {
+    const seconds = Math.ceil(remaining / 1000);
+    timer.textContent = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+    timer.classList.toggle("timer-warning", remaining < 5 * 60 * 1000);
+  }
+  if (remaining === 0) endInterview(true);
+}
+
+function readInterviewChecks() {
+  return {
+    clarify: !!document.getElementById("check-clarify")?.checked,
+    tests: !!document.getElementById("check-tests")?.checked,
+    tradeoffs: !!document.getElementById("check-tradeoffs")?.checked,
+  };
+}
+
+function endInterview(timeExpired = false) {
+  if (!interviewSession) return;
+  clearInterval(interviewTimer);
+  interviewTimer = null;
+  interviewSession.response = document.getElementById("interview-response")?.value || interviewSession.response;
+  interviewSession.checks = readInterviewChecks();
+  interviewSession.timeExpired = timeExpired;
+  renderInterviewReview(interviewSession);
+}
+
+function resetInterview() {
+  clearInterval(interviewTimer);
+  interviewTimer = null;
+  interviewSession = null;
+  renderInterviewHome(interviewHistory, getInterviewStats(interviewHistory));
+}
+
+function saveInterviewReview() {
+  if (!interviewSession) return;
+  const scores = {};
+  document.querySelectorAll("[data-review-score]").forEach((select) => {
+    scores[select.dataset.reviewScore] = Number(select.value);
+  });
+  const total = Math.round(Object.values(scores).reduce((sum, value) => sum + value, 0) / Object.keys(scores).length * 20);
+  const attempt = {
+    id: `${Date.now()}-${interviewSession.prompt.id}`,
+    promptId: interviewSession.prompt.id,
+    title: interviewSession.prompt.title,
+    round: interviewSession.prompt.round,
+    track: interviewSession.trackId,
+    startedAt: new Date(interviewSession.startedAt).toISOString(),
+    completedAt: new Date().toISOString(),
+    durationSeconds: Math.round((Date.now() - interviewSession.startedAt) / 1000),
+    timeExpired: !!interviewSession.timeExpired,
+    checks: interviewSession.checks,
+    responseLength: (interviewSession.response || "").length,
+    scores,
+    total,
+    notes: document.getElementById("interview-review-notes")?.value || "",
+  };
+  interviewHistory = saveInterviewAttempt(attempt);
+  renderInterviewHistory(interviewHistory);
+  renderInterviewStats(getInterviewStats(interviewHistory));
+  document.getElementById("save-interview-btn").textContent = "Saved";
+  document.getElementById("save-interview-btn").disabled = true;
 }
 
 // ─── Run cycle ─────────────────────────────────────────────────────────────
