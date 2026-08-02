@@ -72,6 +72,14 @@
             <option value="challenge">Challenge me</option>
           </select>
         </label>
+        <label class="profile-wide">
+          <span>Current focus</span>
+          <textarea id="profile-focus" rows="3" placeholder="What should research and interview practice optimize for?"></textarea>
+        </label>
+        <label class="profile-wide">
+          <span>Target roles</span>
+          <input id="profile-target-roles" type="text" placeholder="Research Engineer, ML Engineer" />
+        </label>
       </div>
     </div>
     <div class="settings-footer">
@@ -88,16 +96,19 @@
         <span class="brand-mark"><i class="ti ti-telescope"></i></span>
         <div class="brand-text">
           <h1>Research Engine</h1>
-          <p>Agentic paper search · one deep PyTorch assignment per run</p>
+          <p>Research directions · interview practice · protected archive</p>
         </div>
       </div>
       <div class="header-actions">
         <div class="mode-switch" role="group" aria-label="Practice mode">
-          <button type="button" class="mode-btn active" data-mode="research" id="research-mode-btn">
-            <i class="ti ti-telescope"></i> Research
+          <button type="button" class="mode-btn active" data-mode="research_ideas" id="research-ideas-mode-btn">
+            <i class="ti ti-bulb"></i> Research Ideas
           </button>
           <button type="button" class="mode-btn" data-mode="interview" id="interview-mode-btn">
             <i class="ti ti-microphone-2"></i> Interview
+          </button>
+          <button type="button" class="mode-btn" data-mode="archive" id="archive-mode-btn">
+            <i class="ti ti-archive"></i> Archive
           </button>
         </div>
         <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -120,6 +131,34 @@
         </div>
         <div class="interview-stats" id="interview-stats"></div>
       </div>
+
+      <section class="refresh-card" aria-labelledby="interview-refresh-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">No RIE API calls</p>
+            <h3 id="interview-refresh-title">Refresh through Codex or Claude</h3>
+          </div>
+          <span class="interview-note">Copy → web research → paste → review</span>
+        </div>
+        <p class="refresh-explain">RIE will package your current interview catalog, attempts, and weak spots into a prompt. Use it in Codex or Claude, then import only the new questions you approve.</p>
+        <div class="refresh-actions">
+          <button type="button" class="btn-primary" id="copy-interview-refresh-btn"><i class="ti ti-copy"></i> Copy interview prompt</button>
+          <label class="refresh-source-label" for="interview-refresh-source">Source</label>
+          <select id="interview-refresh-source" class="refresh-source">
+            <option value="Codex">Codex</option>
+            <option value="Claude">Claude</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="refresh-status" id="interview-refresh-status" aria-live="polite"></span>
+        </div>
+        <label class="refresh-input-label" for="interview-refresh-input">Paste the JSON response here</label>
+        <textarea id="interview-refresh-input" class="refresh-input" rows="7" placeholder="Paste the JSON returned by Codex or Claude…"></textarea>
+        <div class="refresh-actions">
+          <button type="button" class="btn-ghost" id="preview-interview-refresh-btn">Preview additions</button>
+          <button type="button" class="btn-primary" id="import-interview-refresh-btn" disabled>Import approved questions</button>
+        </div>
+        <div id="interview-refresh-preview" class="refresh-preview" hidden></div>
+      </section>
 
       <section class="interview-launch-card" id="interview-launch-card">
         <div class="section-heading">
@@ -206,7 +245,63 @@
       </section>
     </section>
 
-    <div id="research-mode">
+    <section id="research-ideas-mode" class="research-ideas-mode">
+      <div class="ideas-hero">
+        <div>
+          <p class="eyebrow">External research refresh</p>
+          <h2>Find the next direction worth your attention.</h2>
+          <p>RIE prepares a context-aware prompt. Codex or Claude does the web research. You bring the structured result back here for review and storage.</p>
+        </div>
+        <div class="ideas-stats" id="research-ideas-stats"></div>
+      </div>
+
+      <section class="refresh-card" aria-labelledby="research-refresh-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">No RIE API calls</p>
+            <h3 id="research-refresh-title">Refresh research ideas through Codex or Claude</h3>
+          </div>
+          <span class="interview-note">Copy → web research → paste → review</span>
+        </div>
+        <p class="refresh-explain">The prompt includes your focus, recent directions, archive titles, and interview weaknesses. It asks for serious, cited directions—not another giant implementation assignment.</p>
+        <div class="refresh-actions">
+          <button type="button" class="btn-primary" id="copy-research-refresh-btn"><i class="ti ti-copy"></i> Copy research prompt</button>
+          <label class="refresh-source-label" for="research-refresh-source">Source</label>
+          <select id="research-refresh-source" class="refresh-source">
+            <option value="Codex">Codex</option>
+            <option value="Claude">Claude</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="refresh-status" id="research-refresh-status" aria-live="polite"></span>
+        </div>
+        <label class="refresh-input-label" for="research-refresh-input">Paste the JSON response here</label>
+        <textarea id="research-refresh-input" class="refresh-input" rows="8" placeholder="Paste the JSON returned by Codex or Claude…"></textarea>
+        <div class="refresh-actions">
+          <button type="button" class="btn-ghost" id="preview-research-refresh-btn">Preview additions</button>
+          <button type="button" class="btn-primary" id="import-research-refresh-btn" disabled>Import approved ideas</button>
+        </div>
+        <div id="research-refresh-preview" class="refresh-preview" hidden></div>
+      </section>
+
+      <section class="directions-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">Stored locally</p><h3>Research direction history</h3></div>
+          <span class="interview-note" id="research-ideas-last-refresh"></span>
+        </div>
+        <div id="research-directions-container"></div>
+      </section>
+    </section>
+
+    <div id="research-mode" hidden>
+
+    <div class="archive-banner">
+      <div>
+        <p class="eyebrow">Protected legacy workspace</p>
+        <h2>Research Archive</h2>
+        <p>Your existing papers, assignments, code, statuses, and old API workflow remain here. New research-idea refreshes do not overwrite this archive.</p>
+      </div>
+      <span class="interview-note">Legacy API run · optional</span>
+    </div>
 
     <!-- Legacy element kept for JS compatibility; visually hidden. -->
     <div class="area-badges" id="area-badges" hidden></div>
@@ -215,21 +310,21 @@
     <section class="action-bar">
       <div class="action-bar-left">
         <label class="select-wrap" for="run-area-select">
-          <span class="select-label">Area</span>
+            <span class="select-label">Legacy area</span>
           <select id="run-area-select" class="run-area-select" aria-label="Research area for this run">
             <option value="">Pick an area…</option>
           </select>
         </label>
         <button class="btn-primary btn-run" id="run-btn">
           <i class="ti ti-player-play-filled"></i>
-          <span>Run research cycle</span>
+          <span>Run legacy API cycle</span>
         </button>
       </div>
       <div class="action-bar-right">
-        <button class="btn-ghost" id="export-btn" title="Download all assignments + papers as Markdown">
+        <button class="btn-ghost" id="export-btn" title="Download archive, research directions + interview history as Markdown">
           <i class="ti ti-download"></i><span>Export</span>
         </button>
-        <button class="btn-ghost btn-danger-ghost" id="clear-btn" title="Wipe all local data">
+        <button class="btn-ghost btn-danger-ghost" id="clear-btn" title="Clear the protected legacy archive">
           <i class="ti ti-trash"></i><span>Clear</span>
         </button>
       </div>
@@ -279,8 +374,8 @@
       <div id="assignments-container">
         <div class="empty-state">
           <i class="ti ti-books"></i>
-          <h3>No assignments yet</h3>
-          <p>Pick an area and run the research cycle — the agent will pull the right paper and generate one deep PyTorch project you can build right now.</p>
+          <h3>No archived assignments yet</h3>
+          <p>Your existing research assignments will appear here. The new Research Ideas workflow is in the Research Ideas mode.</p>
         </div>
       </div>
     </section>
@@ -290,8 +385,8 @@
       <div id="papers-container">
         <div class="empty-state">
           <i class="ti ti-file-search"></i>
-          <h3>Library is empty</h3>
-          <p>Run a research cycle to start building your library.</p>
+          <h3>Archive is empty</h3>
+          <p>Run the optional legacy API cycle to add historical papers and assignments.</p>
         </div>
       </div>
     </section>

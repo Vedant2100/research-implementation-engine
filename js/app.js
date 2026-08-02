@@ -18,6 +18,12 @@ import {
   consumeSeedNotice,
   getStudentProfile,
   saveStudentProfile,
+  loadResearchDirections,
+  saveResearchDirections,
+  loadRefreshHistory,
+  saveRefreshHistory,
+  loadInterviewPromptAdditions,
+  saveInterviewPromptAdditions,
 } from "./storage.js";
 import { runResearchAgent } from "./agent.js";
 import {
@@ -41,16 +47,29 @@ import {
   INTERVIEW_TRACKS,
   INTERVIEW_ROUNDS,
   getInterviewPrompt,
+  getAllInterviewPrompts,
   loadInterviewHistory,
   saveInterviewAttempt,
   getInterviewStats,
 } from "./interview.js";
+import {
+  buildResearchRefreshPrompt,
+  buildInterviewRefreshPrompt,
+  parseResearchRefresh,
+  parseInterviewRefresh,
+  previewResearchImport,
+  previewInterviewImport,
+  stampImportedItems,
+} from "./external-refresh.js";
 import {
   renderInterviewHome,
   renderInterviewSession,
   renderInterviewReview,
   renderInterviewHistory,
   renderInterviewStats,
+  renderResearchIdeas,
+  renderRefreshPreview,
+  setRefreshStatus,
   showMode,
 } from "./ui.js";
 
@@ -59,6 +78,10 @@ let db = loadDB();
 let currentFilter = "all";
 let studentProfile = getStudentProfile();
 let interviewHistory = loadInterviewHistory();
+let researchDirections = loadResearchDirections();
+let refreshHistory = loadRefreshHistory();
+let pendingResearchImport = null;
+let pendingInterviewImport = null;
 let interviewSession = null;
 let interviewTimer = null;
 
@@ -75,6 +98,9 @@ document.addEventListener("DOMContentLoaded", () => {
   prefillStudentProfile();
   applyProviderHints();
   setupInterviewMode();
+  setupExternalRefresh();
+  refreshResearchIdeasUI();
+  showMode("research_ideas");
   const seeded = consumeSeedNotice();
   if (seeded > 0) {
     log(`Loaded ${seeded} starter learning items.`, "ok");
@@ -120,6 +146,13 @@ function wireEvents() {
   });
   document.getElementById("save-key-btn").addEventListener("click", onSaveKey);
   document.getElementById("export-btn").addEventListener("click", onExport);
+
+  document.getElementById("copy-research-refresh-btn")?.addEventListener("click", copyResearchRefreshPrompt);
+  document.getElementById("preview-research-refresh-btn")?.addEventListener("click", previewResearchRefresh);
+  document.getElementById("import-research-refresh-btn")?.addEventListener("click", importResearchRefresh);
+  document.getElementById("copy-interview-refresh-btn")?.addEventListener("click", copyInterviewRefreshPrompt);
+  document.getElementById("preview-interview-refresh-btn")?.addEventListener("click", previewInterviewRefresh);
+  document.getElementById("import-interview-refresh-btn")?.addEventListener("click", importInterviewRefresh);
 
   document.querySelectorAll(".mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => showMode(btn.dataset.mode));
@@ -180,10 +213,16 @@ function updateRoundExplain() {
   const explain = document.getElementById("round-explain");
   if (!round || !explain) return;
   const descriptions = {
+    coding_algorithms: "Solve a medium algorithmic problem while clarifying invariants, complexity, and edge cases.",
+    ml_fundamentals: "Explain an ML concept precisely, then connect it to measurement and a real decision.",
     ml_coding: "Implement or reason through an ML primitive while narrating shapes, tests, and complexity.",
+    pytorch_implementation: "Implement a PyTorch primitive and defend numerical, gradient, and performance behavior.",
     debugging: "Diagnose a training or systems failure using measurements before proposing fixes.",
     systems: "Clarify requirements, design the system, estimate scale, and defend tradeoffs.",
+    research_engineering: "Turn a paper claim into a scoped, reproducible experiment under real constraints.",
     paper_defense: "Summarize a claim, challenge the evidence, and propose a falsifiable experiment.",
+    agent_governance: "Design runtime enforcement and evaluation for a tool-using enterprise agent.",
+    behavioral: "Explain your ownership, tradeoffs, failures, and impact clearly and confidentiality-safely.",
   };
   explain.textContent = descriptions[round.id];
 }
@@ -192,7 +231,7 @@ function startInterview() {
   const trackId = document.getElementById("interview-track-select").value;
   const roundId = document.getElementById("interview-round-select").value;
   const recentIds = interviewHistory.slice(0, 5).map((a) => a.promptId);
-  const prompt = getInterviewPrompt(trackId, roundId, recentIds);
+  const prompt = getInterviewPrompt(trackId, roundId, recentIds, db.assignments);
   const round = INTERVIEW_ROUNDS.find((r) => r.id === prompt.round) || INTERVIEW_ROUNDS[0];
   interviewSession = {
     prompt,
@@ -266,12 +305,146 @@ function saveInterviewReview() {
     scores,
     total,
     notes: document.getElementById("interview-review-notes")?.value || "",
+    promptSource: interviewSession.prompt.source || "static",
+    competencies: interviewSession.prompt.competencies || [],
   };
   interviewHistory = saveInterviewAttempt(attempt);
   renderInterviewHistory(interviewHistory);
   renderInterviewStats(getInterviewStats(interviewHistory));
   document.getElementById("save-interview-btn").textContent = "Saved";
   document.getElementById("save-interview-btn").disabled = true;
+}
+
+// ─── External refresh workflow ────────────────────────────────────────────
+function setupExternalRefresh() {
+  refreshResearchIdeasUI();
+  renderInterviewStats(getInterviewStats(interviewHistory));
+}
+
+function refreshResearchIdeasUI() {
+  renderResearchIdeas(researchDirections, refreshHistory);
+}
+
+function copyResearchRefreshPrompt() {
+  const prompt = buildResearchRefreshPrompt({
+    db,
+    directions: researchDirections,
+    studentProfile,
+    interviewHistory,
+  });
+  copyText(prompt, "research-refresh-status", "Research prompt copied. Paste it into Codex or Claude.");
+}
+
+function copyInterviewRefreshPrompt() {
+  const prompt = buildInterviewRefreshPrompt({
+    prompts: getAllInterviewPrompts(),
+    interviewHistory,
+    studentProfile,
+    db,
+  });
+  copyText(prompt, "interview-refresh-status", "Interview prompt copied. Paste it into Codex or Claude.");
+}
+
+function previewResearchRefresh() {
+  try {
+    const incoming = parseResearchRefresh(document.getElementById("research-refresh-input")?.value || "");
+    pendingResearchImport = {
+      incoming,
+      preview: previewResearchImport(researchDirections, incoming),
+    };
+    renderRefreshPreview("research-refresh-preview", pendingResearchImport.preview, "research");
+    document.getElementById("import-research-refresh-btn").disabled = !pendingResearchImport.preview.fresh.length;
+    setRefreshStatus("research-refresh-status", `${incoming.length} directions parsed. Review before importing.`, "ok");
+  } catch (error) {
+    pendingResearchImport = null;
+    document.getElementById("import-research-refresh-btn").disabled = true;
+    setRefreshStatus("research-refresh-status", error.message, "err");
+  }
+}
+
+function importResearchRefresh() {
+  if (!pendingResearchImport?.preview.fresh.length) return;
+  const source = document.getElementById("research-refresh-source")?.value || "external";
+  const fresh = stampImportedItems(pendingResearchImport.preview.fresh, source, "direction");
+  researchDirections = [...researchDirections, ...fresh];
+  saveResearchDirections(researchDirections);
+  refreshHistory = saveRefreshHistory({
+    id: `research-${Date.now()}`,
+    type: "research",
+    source,
+    importedAt: new Date().toISOString(),
+    importedCount: fresh.length,
+    duplicateCount: pendingResearchImport.preview.duplicates,
+  });
+  pendingResearchImport = null;
+  document.getElementById("research-refresh-input").value = "";
+  document.getElementById("import-research-refresh-btn").disabled = true;
+  renderRefreshPreview("research-refresh-preview", null, "research");
+  setRefreshStatus("research-refresh-status", `Imported ${fresh.length} new research direction${fresh.length === 1 ? "" : "s"}.`, "ok");
+  refreshResearchIdeasUI();
+}
+
+function previewInterviewRefresh() {
+  try {
+    const validTracks = INTERVIEW_TRACKS.map((track) => track.id);
+    const validRounds = INTERVIEW_ROUNDS.map((round) => round.id);
+    const incoming = parseInterviewRefresh(
+      document.getElementById("interview-refresh-input")?.value || "",
+      validTracks,
+      validRounds
+    );
+    pendingInterviewImport = {
+      incoming,
+      preview: previewInterviewImport(getAllInterviewPrompts(), incoming),
+    };
+    renderRefreshPreview("interview-refresh-preview", pendingInterviewImport.preview, "interview");
+    document.getElementById("import-interview-refresh-btn").disabled = !pendingInterviewImport.preview.fresh.length;
+    setRefreshStatus("interview-refresh-status", `${incoming.length} questions parsed. Review before importing.`, "ok");
+  } catch (error) {
+    pendingInterviewImport = null;
+    document.getElementById("import-interview-refresh-btn").disabled = true;
+    setRefreshStatus("interview-refresh-status", error.message, "err");
+  }
+}
+
+function importInterviewRefresh() {
+  if (!pendingInterviewImport?.preview.fresh.length) return;
+  const source = document.getElementById("interview-refresh-source")?.value || "external";
+  const fresh = stampImportedItems(pendingInterviewImport.preview.fresh, source, "prompt");
+  const additions = [...loadInterviewPromptAdditions(), ...fresh];
+  saveInterviewPromptAdditions(additions);
+  refreshHistory = saveRefreshHistory({
+    id: `interview-${Date.now()}`,
+    type: "interview",
+    source,
+    importedAt: new Date().toISOString(),
+    importedCount: fresh.length,
+    duplicateCount: pendingInterviewImport.preview.duplicates,
+  });
+  pendingInterviewImport = null;
+  document.getElementById("interview-refresh-input").value = "";
+  document.getElementById("import-interview-refresh-btn").disabled = true;
+  renderRefreshPreview("interview-refresh-preview", null, "interview");
+  setRefreshStatus("interview-refresh-status", `Imported ${fresh.length} new interview question${fresh.length === 1 ? "" : "s"}.`, "ok");
+  renderInterviewHome(interviewHistory, getInterviewStats(interviewHistory));
+}
+
+function copyText(text, statusId, successMessage) {
+  const fallback = () => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  };
+
+  const copied = navigator.clipboard?.writeText
+    ? navigator.clipboard.writeText(text).catch(fallback)
+    : Promise.resolve(fallback());
+  Promise.resolve(copied).then(() => setRefreshStatus(statusId, successMessage, "ok"));
 }
 
 // ─── Run cycle ─────────────────────────────────────────────────────────────
@@ -356,7 +529,8 @@ async function onRun() {
 
 // ─── Clear ─────────────────────────────────────────────────────────────────
 function onClear() {
-  if (!confirm("Clear all papers, assignments, and logs?")) return;
+  const confirmation = prompt("This clears the legacy Research Archive only. Type CLEAR ARCHIVE to continue.");
+  if (confirmation !== "CLEAR ARCHIVE") return;
   db = clearDB();
   document.getElementById("log-container").innerHTML = "";
   log("Database cleared. Ready for a fresh run.", "ok");
@@ -391,6 +565,8 @@ function prefillStudentProfile() {
   setFormValue("profile-compute", studentProfile.compute);
   setFormValue("profile-hours", studentProfile.weeklyHours);
   setFormValue("profile-style", studentProfile.style);
+  setFormValue("profile-focus", studentProfile.focus);
+  setFormValue("profile-target-roles", studentProfile.targetRoles);
 }
 
 function readStudentProfileForm() {
@@ -399,6 +575,8 @@ function readStudentProfileForm() {
     compute: document.getElementById("profile-compute")?.value || "cpu",
     weeklyHours: document.getElementById("profile-hours")?.value || "4-6",
     style: document.getElementById("profile-style")?.value || "guided",
+    focus: document.getElementById("profile-focus")?.value.trim() || "",
+    targetRoles: document.getElementById("profile-target-roles")?.value.trim() || "Research Engineer, ML Engineer",
   };
 }
 
@@ -421,6 +599,25 @@ function onExport() {
 
 function buildMarkdownExport(db) {
   const lines = ["# PyTorch Research Engine Export", `_${new Date().toLocaleString()}_`, ""];
+
+  lines.push("## Research directions", "");
+  if (!researchDirections.length) {
+    lines.push("No current research directions imported.", "");
+  } else {
+    for (const direction of researchDirections) {
+      lines.push(`### ${direction.title}`);
+      lines.push(`**Area:** ${direction.area || "Uncategorized"}  |  **Status:** ${direction.status || "candidate"}  |  **Confidence:** ${direction.confidence || "medium"}`);
+      if (direction.summary) lines.push(direction.summary, "");
+      if (direction.baseline) lines.push("**Baseline:** " + direction.baseline, "");
+      if (direction.what_it_adds) lines.push("**What it adds:** " + direction.what_it_adds, "");
+      if (direction.why_it_matters) lines.push("**Why it matters:** " + direction.why_it_matters, "");
+      if (direction.first_experiment) lines.push("**First experiment:** " + direction.first_experiment, "");
+      if (direction.next_step) lines.push("**Next step:** " + direction.next_step, "");
+      if ((direction.open_questions || []).length) lines.push("**Open questions:**", ...direction.open_questions.map((item) => "- " + item), "");
+      if ((direction.risks || []).length) lines.push("**Risks / prerequisites:**", ...direction.risks.map((item) => "- " + item), "");
+      lines.push("---", "");
+    }
+  }
 
   lines.push("## Assignments", "");
   for (const a of db.assignments) {
@@ -463,6 +660,17 @@ function buildMarkdownExport(db) {
     lines.push(p.core_idea || "", "");
     if (p.why_important) lines.push("_" + p.why_important + "_", "");
     lines.push("---", "");
+  }
+
+  lines.push("## Interview history", "");
+  if (!interviewHistory.length) {
+    lines.push("No interview attempts saved.", "");
+  } else {
+    for (const attempt of interviewHistory) {
+      lines.push(`- **${attempt.title}** — ${attempt.total ? `${attempt.total}/100` : "Not scored"} · ${attempt.completedAt || "date unknown"}`);
+      if (attempt.notes) lines.push(`  - Notes: ${attempt.notes}`);
+    }
+    lines.push("");
   }
 
   return lines.join("\n");

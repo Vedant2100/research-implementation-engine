@@ -47,7 +47,7 @@ export function renderAssignments(assignments, filter = "all", getStatus = () =>
       "ti-books",
       assignments.length
         ? "No assignments in this area yet."
-        : 'Hit "Run research cycle" to generate your first assignments.'
+        : 'Use the external refresh workflow to add current research directions.'
     );
     return;
   }
@@ -382,7 +382,7 @@ export function setRunning(isRunning) {
   btn.disabled = isRunning;
   btn.innerHTML = isRunning
     ? `<span class="spin">⟳</span> Researching...`
-    : `Run research cycle →`;
+    : `Run legacy API cycle →`;
 }
 
 // ─── Tab switching ─────────────────────────────────────────────────────────
@@ -406,11 +406,13 @@ export function toggleSettings(show) {
 }
 
 export function showMode(mode) {
+  const ideas = document.getElementById("research-ideas-mode");
   const research = document.getElementById("research-mode");
   const interview = document.getElementById("interview-mode");
-  if (!research || !interview) return;
+  if (!ideas || !research || !interview) return;
   const isInterview = mode === "interview";
-  research.hidden = isInterview;
+  ideas.hidden = mode !== "research_ideas";
+  research.hidden = mode !== "archive";
   interview.hidden = !isInterview;
   document.querySelectorAll(".mode-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === mode));
 }
@@ -428,7 +430,7 @@ export function renderInterviewHome(history = [], stats = { attempts: 0, average
 
 export function renderInterviewStats(stats = { attempts: 0, average: 0, best: 0 }) {
   const statsEl = document.getElementById("interview-stats");
-  if (statsEl) statsEl.innerHTML = `<div><strong>${stats.attempts}</strong><span>attempts</span></div><div><strong>${stats.average || "—"}</strong><span>average / 100</span></div><div><strong>${stats.best || "—"}</strong><span>best / 100</span></div>`;
+  if (statsEl) statsEl.innerHTML = `<div><strong>${stats.attempts}</strong><span>attempts</span></div><div><strong>${stats.average || "—"}</strong><span>average / 100</span></div><div><strong>${stats.best || "—"}</strong><span>best / 100</span></div><div><strong>${esc(stats.weakest || "—")}</strong><span>focus next</span></div>`;
 }
 
 export function renderInterviewSession(session, round) {
@@ -475,8 +477,92 @@ export function renderInterviewHistory(history = []) {
     container.innerHTML = `<div class="history-empty"><i class="ti ti-chart-dots"></i><span>Your first attempt will appear here.</span></div>`;
     return;
   }
-  const labels = { ml_coding: "ML coding", debugging: "Debugging", systems: "Systems design", paper_defense: "Paper defense" };
+  const labels = {
+    coding_algorithms: "Coding / algorithms",
+    ml_fundamentals: "ML fundamentals",
+    ml_coding: "ML coding",
+    pytorch_implementation: "PyTorch implementation",
+    debugging: "Debugging",
+    systems: "Systems design",
+    research_engineering: "Research engineering",
+    paper_defense: "Paper defense",
+    agent_governance: "Agent governance",
+    behavioral: "Behavioral",
+  };
   container.innerHTML = history.slice(0, 8).map((attempt) => `<div class="history-row"><div><strong>${esc(attempt.title)}</strong><span>${esc(labels[attempt.round] || attempt.round)} · ${new Date(attempt.completedAt).toLocaleDateString()}</span></div><span class="history-score">${attempt.total ? `${attempt.total}/100` : "Not scored"}</span></div>`).join("");
+}
+
+// ─── External research ideas ─────────────────────────────────────────────
+export function renderResearchIdeas(directions = [], refreshHistory = []) {
+  const stats = document.getElementById("research-ideas-stats");
+  const last = refreshHistory.find((entry) => entry.type === "research");
+  if (stats) {
+    stats.innerHTML = `<div><strong>${directions.length}</strong><span>directions</span></div><div><strong>${refreshHistory.filter((entry) => entry.type === "research").length}</strong><span>refreshes</span></div>`;
+  }
+  const lastEl = document.getElementById("research-ideas-last-refresh");
+  if (lastEl) {
+    lastEl.textContent = last
+      ? `Last refresh: ${new Date(last.importedAt).toLocaleDateString()} · ${last.source}`
+      : "No external refresh imported yet";
+  }
+
+  const container = document.getElementById("research-directions-container");
+  if (!container) return;
+  if (!directions.length) {
+    container.innerHTML = emptyState("ti-bulb", "No research directions imported yet. Copy the prompt above and refresh through Codex or Claude.");
+    return;
+  }
+  container.innerHTML = directions.slice().reverse().map(researchDirectionCard).join("");
+}
+
+function researchDirectionCard(direction) {
+  const sources = (direction.prior_work || []).slice(0, 4).map((source) => {
+    const label = esc(source.title || source.url || "Source");
+    const url = safeHttpUrl(source.url);
+    return url
+      ? `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>${source.relevance ? ` — ${esc(source.relevance)}` : ""}</li>`
+      : `<li>${label}${source.relevance ? ` — ${esc(source.relevance)}` : ""}</li>`;
+  }).join("");
+  const list = (items) => Array.isArray(items) && items.length
+    ? `<ul class="direction-list">${items.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>`
+    : `<p class="direction-muted">Not specified.</p>`;
+  return `<article class="direction-card">
+    <div class="direction-card-head"><div><span class="eyebrow">${esc(direction.area || "Research")}</span><h3>${esc(direction.title)}</h3></div><span class="badge badge-${direction.confidence === "high" ? "green" : direction.confidence === "low" ? "coral" : "amber"}">${esc(direction.status || "candidate")}</span></div>
+    ${direction.summary ? `<p class="direction-summary">${esc(direction.summary)}</p>` : ""}
+    <div class="direction-grid">
+      ${direction.baseline ? `<div><strong>Baseline</strong><p>${esc(direction.baseline)}</p></div>` : ""}
+      ${direction.what_it_adds ? `<div><strong>What it adds</strong><p>${esc(direction.what_it_adds)}</p></div>` : ""}
+      ${direction.why_it_matters ? `<div><strong>Why it matters</strong><p>${esc(direction.why_it_matters)}</p></div>` : ""}
+      ${direction.first_experiment ? `<div class="direction-highlight"><strong>First experiment</strong><p>${esc(direction.first_experiment)}</p></div>` : ""}
+      ${direction.next_step ? `<div class="direction-highlight"><strong>Next step</strong><p>${esc(direction.next_step)}</p></div>` : ""}
+    </div>
+    ${direction.open_questions?.length ? `<strong class="direction-label">Open questions</strong>${list(direction.open_questions)}` : ""}
+    ${direction.risks?.length ? `<strong class="direction-label">Risks / prerequisites</strong>${list(direction.risks)}` : ""}
+    ${sources ? `<strong class="direction-label">Prior work</strong><ul class="direction-list">${sources}</ul>` : ""}
+    <footer class="direction-footer">Imported ${direction.importedAt ? new Date(direction.importedAt).toLocaleDateString() : "from history"} · ${esc(direction.source || "external")}</footer>
+  </article>`;
+}
+
+export function renderRefreshPreview(elementId, preview, type) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  if (!preview) {
+    element.hidden = true;
+    element.innerHTML = "";
+    return;
+  }
+  const label = type === "research" ? "research directions" : "interview questions";
+  const titles = (preview.fresh || []).slice(0, 8).map((item) => `<li>${esc(item.title)}</li>`).join("");
+  element.hidden = false;
+  element.innerHTML = `<strong>Preview:</strong> ${preview.fresh.length} new ${label}; ${preview.duplicates} already known.
+    ${preview.fresh.length ? `<ul class="refresh-preview-list">${titles}</ul><span>Import will add only new items and will not overwrite existing history.</span>` : `<span>Nothing new to import.</span>`}`;
+}
+
+export function setRefreshStatus(elementId, message, type = "") {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  element.textContent = message;
+  element.className = `refresh-status${type ? ` refresh-status-${type}` : ""}`;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -491,6 +577,15 @@ function esc(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
 }
 
 function emptyState(icon, msg) {

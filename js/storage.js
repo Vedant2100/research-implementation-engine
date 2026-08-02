@@ -14,6 +14,9 @@ const SEED_FLAG = `research_engine_seed_${SEED_VERSION}`;
 const PROFILE_KEY = "research_engine_student_profile";
 const CODE_KEY = "research_engine_code";
 const STATUS_KEY = "research_engine_status";
+const RESEARCH_DIRECTIONS_KEY = "research_engine_research_directions_v1";
+const REFRESH_HISTORY_KEY = "research_engine_refresh_history_v1";
+const INTERVIEW_ADDITIONS_KEY = "research_engine_interview_additions_v1";
 const STARTER_PRUNE_FLAG = "research_engine_pruned_starters_vit_full_pipeline_v1";
 
 const KEEP_STARTER_TITLE = "Vision Transformer (ViT) from scratch";
@@ -43,6 +46,8 @@ const DEFAULT_PROFILE = {
   compute: "cpu",
   weeklyHours: "4-6",
   style: "guided",
+  focus: "Agent governance, agent evaluations, research engineering, interview preparation, post-training/RL/alignment, and memory governance",
+  targetRoles: "Research Engineer, ML Engineer",
 };
 
 export function loadDB() {
@@ -186,6 +191,32 @@ export function saveStudentProfile(profile) {
   localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...DEFAULT_PROFILE, ...profile }));
 }
 
+export function loadResearchDirections() {
+  return loadArray(RESEARCH_DIRECTIONS_KEY);
+}
+
+export function saveResearchDirections(directions) {
+  saveArray(RESEARCH_DIRECTIONS_KEY, directions);
+}
+
+export function loadRefreshHistory() {
+  return loadArray(REFRESH_HISTORY_KEY);
+}
+
+export function saveRefreshHistory(entry) {
+  const history = [entry, ...loadRefreshHistory()].slice(0, 100);
+  saveArray(REFRESH_HISTORY_KEY, history);
+  return history;
+}
+
+export function loadInterviewPromptAdditions() {
+  return loadArray(INTERVIEW_ADDITIONS_KEY);
+}
+
+export function saveInterviewPromptAdditions(prompts) {
+  saveArray(INTERVIEW_ADDITIONS_KEY, prompts);
+}
+
 function freshDB() {
   return {
     papers: [],
@@ -195,6 +226,23 @@ function freshDB() {
     areas: new Set(),
     lastRun: null,
   };
+}
+
+function loadArray(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveArray(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error(`Storage save failed for ${key}:`, e);
+  }
 }
 
 function slugTitle(title) {
